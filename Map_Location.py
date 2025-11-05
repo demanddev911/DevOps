@@ -414,6 +414,15 @@ def upload_to_bigquery(df: pd.DataFrame, table_id: str = None, create_if_needed:
     # Check if table exists
     table_exists = check_table_exists(table_id)
     
+    # Remove duplicates if table exists
+    if table_exists:
+        df = remove_duplicate_places(df, table_id)
+        
+        # If all records are duplicates, nothing to upload
+        if df.empty:
+            logger.info("⚠️ All records already exist in BigQuery. Nothing to upload.")
+            return True
+    
     if not table_exists:
         if create_if_needed:
             logger.info(f"Table does not exist. Creating table {table_id}...")
