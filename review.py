@@ -286,14 +286,14 @@ def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
         except:
             pass
         
-        # Create table with schema
+        # Create table with schema (using STRING for JSON compatibility)
         schema = [
             bigquery.SchemaField("place_id", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("total_reviews", "INTEGER"),
             bigquery.SchemaField("pages_fetched", "INTEGER"),
-            bigquery.SchemaField("reviews", "JSON"),  # Store full reviews as JSON
-            bigquery.SchemaField("topics", "JSON"),   # Store topics as JSON
-            bigquery.SchemaField("metadata", "JSON"), # Store metadata as JSON
+            bigquery.SchemaField("reviews", "STRING"),  # JSON stored as STRING
+            bigquery.SchemaField("topics", "STRING"),   # JSON stored as STRING
+            bigquery.SchemaField("metadata", "STRING"), # JSON stored as STRING
             bigquery.SchemaField("timestamp", "TIMESTAMP"),
             bigquery.SchemaField("fetch_date", "DATE"),
         ]

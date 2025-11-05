@@ -1,0 +1,20 @@
+# 🔧 QUICK FIX - Run this cell to delete the old table and start fresh
+
+# This cell deletes the existing table so it can be recreated with the correct schema
+client = get_bigquery_client()
+
+if client:
+    table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
+    
+    try:
+        # Delete the existing table
+        client.delete_table(table_id, not_found_ok=True)
+        print(f"✅ Deleted table: {DESTINATION_TABLE}")
+        print("\n📝 Next steps:")
+        print("1. Re-run Step 4 (Define Core Functions) - now uses STRING instead of JSON")
+        print("2. Run Step 8 (Batch Process) - table will be created with correct schema")
+        print("\n🎉 Ready to continue!")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+else:
+    print("❌ Failed to connect to BigQuery")
