@@ -1,0 +1,62 @@
+# 🔧 QUICK FIX - Copy and paste this into a NEW CELL in your notebook and run it
+
+# This will:
+# 1. Delete the old table with wrong schema
+# 2. Reload all functions with the fixed schema (STRING instead of JSON)
+
+print("🔧 Applying fixes...\n")
+
+# Step 1: Delete old table
+client = get_bigquery_client()
+if client:
+    table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
+    try:
+        client.delete_table(table_id, not_found_ok=True)
+        print(f"✅ Deleted old table: {DESTINATION_TABLE}\n")
+    except Exception as e:
+        print(f"⚠️ Could not delete table (might not exist): {e}\n")
+else:
+    print("❌ Could not connect to BigQuery\n")
+
+# Step 2: Reload create_reviews_table function with FIX
+def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
+    """Creates the place_reviews_full table with STRING type for JSON fields."""
+    table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
+    
+    try:
+        try:
+            client.get_table(table_id)
+            logger.info(f"✅ Table {DESTINATION_TABLE} already exists")
+            return True
+        except:
+            pass
+        
+        # FIXED: Using STRING instead of JSON
+        schema = [
+            bigquery.SchemaField("place_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("total_reviews", "INTEGER"),
+            bigquery.SchemaField("pages_fetched", "INTEGER"),
+            bigquery.SchemaField("reviews", "STRING"),  # ✅ STRING instead of JSON
+            bigquery.SchemaField("topics", "STRING"),   # ✅ STRING instead of JSON
+            bigquery.SchemaField("metadata", "STRING"), # ✅ STRING instead of JSON
+            bigquery.SchemaField("timestamp", "TIMESTAMP"),
+            bigquery.SchemaField("fetch_date", "DATE"),
+        ]
+        
+        table = bigquery.Table(table_id, schema=schema)
+        table = client.create_table(table)
+        
+        logger.info(f"✅ Created table {DESTINATION_TABLE} with STRING type")
+        print(f"✅ Created new table with FIXED schema (STRING type)")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error creating table: {e}")
+        return False
+
+print("✅ Function reloaded with FIX (STRING instead of JSON)\n")
+print("=" * 60)
+print("🎉 Ready to continue!")
+print("=" * 60)
+print("\nNext step: Run Step 8 again to process places")
+print("The table will be created with the correct schema automatically")
