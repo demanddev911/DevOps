@@ -190,6 +190,8 @@ def flatten_reviews_to_rows(review_data: Dict[str, Any]) -> pd.DataFrame:
     current_date = current_time.date()
     
     rows = []
+    seen_review_ids = set()  # ANTI-DUPLICATE: Track review_ids in THIS batch
+    duplicates_in_api = 0
     
     for review in reviews:
         user = review.get('user', {})
@@ -205,6 +207,14 @@ def flatten_reviews_to_rows(review_data: Dict[str, Any]) -> pd.DataFrame:
         
         # Generate unique review_id
         review_id = generate_review_id(place_id, iso_date, reviewer_name, snippet)
+        
+        # ANTI-DUPLICATE: Skip if we've already seen this review_id in THIS batch
+        if review_id in seen_review_ids:
+            duplicates_in_api += 1
+            logger.warning(f"🔍 Skipping duplicate review_id in API response: {review_id[:8]}...")
+            continue
+        
+        seen_review_ids.add(review_id)
         
         row = {
             'review_id': review_id,
@@ -225,8 +235,11 @@ def flatten_reviews_to_rows(review_data: Dict[str, Any]) -> pd.DataFrame:
         
         rows.append(row)
     
+    if duplicates_in_api > 0:
+        logger.warning(f"🔍 ANTI-DUPLICATE: Removed {duplicates_in_api} duplicate(s) from API response")
+    
     df = pd.DataFrame(rows)
-    logger.info(f"✅ Flattened {len(rows)} reviews with unique review_ids")
+    logger.info(f"✅ Flattened {len(rows)} UNIQUE reviews with unique review_ids")
     return df
 
 # ==================== BIGQUERY OPERATIONS ====================
@@ -256,24 +269,41 @@ def get_existing_review_ids(client: bigquery.Client) -> set:
 
 
 def remove_duplicate_reviews(df: pd.DataFrame, client: bigquery.Client) -> pd.DataFrame:
-    """Removes reviews that already exist in BigQuery."""
+    """
+    Removes reviews that already exist in BigQuery.
+    TRIPLE-CHECK deduplication to ensure NO duplicates.
+    """
     if df.empty:
         return df
     
     original_count = len(df)
+    
+    # ANTI-DUPLICATE STEP 1: Remove duplicates within DataFrame itself
+    df_internal_dedup = df.drop_duplicates(subset=['review_id'], keep='first')
+    internal_duplicates = original_count - len(df_internal_dedup)
+    
+    if internal_duplicates > 0:
+        logger.warning(f"🔍 ANTI-DUPLICATE: Removed {internal_duplicates} internal duplicate(s)")
+    
+    # ANTI-DUPLICATE STEP 2: Check against BigQuery
     existing_ids = get_existing_review_ids(client)
     
     if not existing_ids:
-        logger.info("✅ No existing reviews, uploading all")
-        return df
+        logger.info("✅ No existing reviews in BigQuery, uploading all")
+        return df_internal_dedup
     
-    df_filtered = df[~df['review_id'].isin(existing_ids)].copy()
+    df_filtered = df_internal_dedup[~df_internal_dedup['review_id'].isin(existing_ids)].copy()
     
-    duplicates_removed = original_count - len(df_filtered)
+    bigquery_duplicates = len(df_internal_dedup) - len(df_filtered)
     
-    if duplicates_removed > 0:
-        logger.info(f"🔍 Removed {duplicates_removed} duplicate(s)")
-        logger.info(f"📤 {len(df_filtered)} new review(s)")
+    if bigquery_duplicates > 0:
+        logger.warning(f"🔍 ANTI-DUPLICATE: Removed {bigquery_duplicates} duplicate(s) already in BigQuery")
+    
+    total_removed = original_count - len(df_filtered)
+    
+    if total_removed > 0:
+        logger.info(f"🛡️ TOTAL DUPLICATES PREVENTED: {total_removed}")
+        logger.info(f"📤 {len(df_filtered)} NEW review(s) will be uploaded")
     else:
         logger.info(f"✅ All {original_count} review(s) are new")
     
@@ -354,12 +384,19 @@ def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List
             logger.info("📊 Reading all CIDs (destination table doesn't exist yet)...")
         
         result = client.query(query).to_dataframe()
-        place_ids = result['place_id'].tolist()
+        place_ids_raw = result['place_id'].tolist()
+        
+        # ANTI-DUPLICATE: Remove duplicates from the list itself!
+        place_ids = list(set(place_ids_raw))  # Convert to set then back to list
+        duplicates_in_list = len(place_ids_raw) - len(place_ids)
+        
+        if duplicates_in_list > 0:
+            logger.warning(f"🔍 Removed {duplicates_in_list} duplicate place_id(s) from input list")
         
         if len(place_ids) == 0:
             logger.info(f"✅ All places already processed! No API calls needed.")
         else:
-            logger.info(f"✅ Found {len(place_ids)} NEW place(s) to process")
+            logger.info(f"✅ Found {len(place_ids)} UNIQUE place(s) to process")
             logger.info(f"💰 This will make ~{len(place_ids) * 3} API calls (avg 3 pages/place)")
         
         return place_ids
@@ -459,14 +496,27 @@ def main():
     skipped = 0
     total_new_reviews = 0
     
+    # ANTI-DUPLICATE: Track which places we've already processed in THIS run
+    processed_in_this_run = set()
+    
     for idx, place_id in enumerate(place_ids, 1):
         try:
             logger.info(f"\n📍 Place {idx}/{len(place_ids)}: {place_id}")
             
-            # IMPORTANT: Check before making API call!
+            # ANTI-DUPLICATE LAYER 1: Check if we processed this place in THIS RUN
+            if place_id in processed_in_this_run:
+                logger.error(f"🚨 DUPLICATE IN INPUT LIST! Place {place_id} already processed in this run")
+                logger.error(f"🚨 SKIPPING to avoid duplicate API call")
+                skipped += 1
+                continue
+            
+            # ANTI-DUPLICATE LAYER 2: Check if place already in BigQuery
             if check_if_place_already_processed(client, place_id):
                 skipped += 1
                 continue
+            
+            # Mark as processed for THIS run
+            processed_in_this_run.add(place_id)
             
             review_data = fetch_all_reviews_for_place(place_id)
             
