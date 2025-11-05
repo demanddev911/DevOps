@@ -8,6 +8,7 @@ Fetches location data from RapidAPI and uploads to BigQuery
 # --- IMPORTS ---
 import os
 import sys
+import re
 import json
 import logging
 import argparse
@@ -175,6 +176,54 @@ def collect_places_from_list(place_names: List[str]) -> Optional[pd.DataFrame]:
 
 # --- FUNCTIONS FOR PART 2: BigQuery Upload ---
 
+def sanitize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Sanitizes DataFrame column names to be BigQuery-compatible.
+    
+    BigQuery column names must:
+    - Contain only letters, numbers, and underscores
+    - Start with a letter or underscore
+    - Be at most 300 characters long
+    
+    Args:
+        df: DataFrame with potentially invalid column names
+        
+    Returns:
+        DataFrame with sanitized column names
+    """
+    new_columns = {}
+    for col in df.columns:
+        # Replace dots, spaces, and other special characters with underscores
+        sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', col)
+        
+        # Ensure it doesn't start with a number
+        if sanitized and sanitized[0].isdigit():
+            sanitized = '_' + sanitized
+        
+        # Ensure it's not empty
+        if not sanitized:
+            sanitized = 'column_' + str(df.columns.get_loc(col))
+        
+        # Limit to 300 characters
+        sanitized = sanitized[:300]
+        
+        # Handle duplicates by appending number
+        if sanitized in new_columns.values():
+            counter = 1
+            while f"{sanitized}_{counter}" in new_columns.values():
+                counter += 1
+            sanitized = f"{sanitized}_{counter}"
+        
+        new_columns[col] = sanitized
+    
+    df_copy = df.copy()
+    df_copy.columns = [new_columns[col] for col in df.columns]
+    
+    logger.info(f"Sanitized {len([c for c in df.columns if c != new_columns[c]])} column names for BigQuery compatibility")
+    
+    return df_copy
+
+
 def check_table_exists(table_id: str = None) -> bool:
     """
     Checks if a BigQuery table exists.
@@ -290,6 +339,9 @@ def upload_to_bigquery(df: pd.DataFrame, table_id: str = None, create_if_needed:
         return False
     
     table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+    
+    # Sanitize column names for BigQuery compatibility
+    df = sanitize_column_names(df)
     
     # Check if table exists
     table_exists = check_table_exists(table_id)
