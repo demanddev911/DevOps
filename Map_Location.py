@@ -8,7 +8,6 @@ Fetches location data from RapidAPI and uploads to BigQuery
 # --- IMPORTS ---
 import os
 import sys
-import json
 import logging
 import argparse
 import requests
@@ -16,8 +15,6 @@ import pandas as pd
 from typing import Optional, Dict, Any, List
 from google.oauth2 import service_account
 from google.cloud import bigquery
-from google.auth.exceptions import DefaultCredentialsError
-from pathlib import Path
 
 # --- LOGGING SETUP ---
 logging.basicConfig(
