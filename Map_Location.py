@@ -314,6 +314,97 @@ def check_table_exists(table_id: str = None) -> bool:
         return False
 
 
+def get_existing_place_ids(table_id: str = None) -> set:
+    """
+    Retrieves all existing place IDs from BigQuery table.
+    
+    Args:
+        table_id: Full table ID in format project.dataset.table
+        
+    Returns:
+        Set of existing place IDs, empty set if table doesn't exist or on error
+    """
+    client = get_bigquery_client()
+    if not client:
+        return set()
+    
+    table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+    
+    # Check if table exists first
+    if not check_table_exists(table_id):
+        logger.info("Table doesn't exist yet, no existing place IDs to check")
+        return set()
+    
+    try:
+        # Query to get all place IDs (try common field names)
+        # Try place_id first, then placeId, then id
+        query = f"""
+        SELECT DISTINCT 
+            COALESCE(place_id, placeId, id) as place_id
+        FROM `{table_id}`
+        WHERE COALESCE(place_id, placeId, id) IS NOT NULL
+        """
+        
+        result = client.query(query).result()
+        existing_ids = {row.place_id for row in result}
+        
+        logger.info(f"Found {len(existing_ids)} existing place IDs in table")
+        return existing_ids
+        
+    except Exception as e:
+        logger.warning(f"Could not retrieve existing place IDs: {e}")
+        logger.info("Proceeding without deduplication check")
+        return set()
+
+
+def remove_duplicate_places(df: pd.DataFrame, table_id: str = None) -> pd.DataFrame:
+    """
+    Removes rows with place IDs that already exist in BigQuery.
+    
+    Args:
+        df: DataFrame with place data
+        table_id: Full table ID in format project.dataset.table
+        
+    Returns:
+        DataFrame with duplicate places removed
+    """
+    if df is None or df.empty:
+        return df
+    
+    # Find place_id column (could be place_id, placeId, or id)
+    place_id_col = None
+    for col in ['place_id', 'placeId', 'id']:
+        if col in df.columns:
+            place_id_col = col
+            break
+    
+    if place_id_col is None:
+        logger.warning("No place_id column found in data, skipping deduplication")
+        return df
+    
+    original_count = len(df)
+    
+    # Get existing place IDs from BigQuery
+    existing_ids = get_existing_place_ids(table_id)
+    
+    if not existing_ids:
+        logger.info("No existing place IDs to check, uploading all records")
+        return df
+    
+    # Filter out rows with existing place IDs
+    df_filtered = df[~df[place_id_col].isin(existing_ids)].copy()
+    
+    duplicates_removed = original_count - len(df_filtered)
+    
+    if duplicates_removed > 0:
+        logger.info(f"🔍 Removed {duplicates_removed} duplicate place(s) that already exist")
+        logger.info(f"📤 {len(df_filtered)} new place(s) to upload")
+    else:
+        logger.info(f"✅ All {original_count} place(s) are new")
+    
+    return df_filtered
+
+
 def create_bigquery_table(table_id: str = None, schema: List[bigquery.SchemaField] = None) -> bool:
     """
     Creates a new BigQuery table.
