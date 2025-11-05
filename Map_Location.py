@@ -336,17 +336,31 @@ def get_existing_place_ids(table_id: str = None) -> set:
         return set()
     
     try:
-        # Query to get all place IDs (try common field names)
-        # Try place_id first, then placeId, then id
+        # Get table schema to find the correct place_id column name
+        table = client.get_table(table_id)
+        column_names = [field.name for field in table.schema]
+        
+        # Find which place_id column exists
+        place_id_column = None
+        for possible_name in ['place_id', 'placeId', 'id']:
+            if possible_name in column_names:
+                place_id_column = possible_name
+                logger.info(f"Using column '{place_id_column}' for deduplication")
+                break
+        
+        if not place_id_column:
+            logger.warning("No place_id column found in table, skipping deduplication")
+            return set()
+        
+        # Query to get all place IDs using the correct column name
         query = f"""
-        SELECT DISTINCT 
-            COALESCE(place_id, placeId, id) as place_id
+        SELECT DISTINCT {place_id_column}
         FROM `{table_id}`
-        WHERE COALESCE(place_id, placeId, id) IS NOT NULL
+        WHERE {place_id_column} IS NOT NULL
         """
         
         result = client.query(query).result()
-        existing_ids = {row.place_id for row in result}
+        existing_ids = {row[0] for row in result}
         
         logger.info(f"Found {len(existing_ids)} existing place IDs in table")
         return existing_ids
