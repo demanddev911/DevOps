@@ -175,6 +175,66 @@ def collect_places_from_list(place_names: List[str]) -> Optional[pd.DataFrame]:
 
 # --- FUNCTIONS FOR PART 2: BigQuery Upload ---
 
+def check_table_exists(table_id: str = None) -> bool:
+    """
+    Checks if a BigQuery table exists.
+    
+    Args:
+        table_id: Full table ID in format project.dataset.table
+        
+    Returns:
+        True if table exists, False otherwise
+    """
+    client = get_bigquery_client()
+    if not client:
+        return False
+    
+    table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+    
+    try:
+        client.get_table(table_id)
+        logger.info(f"Table {table_id} exists")
+        return True
+    except Exception:
+        logger.info(f"Table {table_id} does not exist")
+        return False
+
+
+def create_bigquery_table(table_id: str = None, schema: List[bigquery.SchemaField] = None) -> bool:
+    """
+    Creates a new BigQuery table.
+    
+    Args:
+        table_id: Full table ID in format project.dataset.table
+        schema: List of SchemaField objects (optional, will auto-detect if not provided)
+        
+    Returns:
+        True if creation successful, False otherwise
+    """
+    client = get_bigquery_client()
+    if not client:
+        return False
+    
+    table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+    
+    try:
+        # Check if table already exists
+        if check_table_exists(table_id):
+            logger.info(f"Table {table_id} already exists, skipping creation")
+            return True
+        
+        # Create table object
+        table = bigquery.Table(table_id, schema=schema)
+        
+        # Create the table
+        table = client.create_table(table)
+        logger.info(f"✅ Created table {table_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating table: {e}")
+        return False
+
+
 def get_bigquery_client(credentials_path: str = None) -> Optional[bigquery.Client]:
     """
     Creates and returns a BigQuery client with proper credentials.
@@ -208,13 +268,15 @@ def get_bigquery_client(credentials_path: str = None) -> Optional[bigquery.Clien
         return None
 
 
-def upload_to_bigquery(df: pd.DataFrame, table_id: str = None) -> bool:
+def upload_to_bigquery(df: pd.DataFrame, table_id: str = None, create_if_needed: bool = True) -> bool:
     """
     Uploads a DataFrame to BigQuery.
+    Creates the table on first run, then appends on subsequent runs.
     
     Args:
         df: DataFrame to upload
         table_id: Full table ID in format project.dataset.table
+        create_if_needed: If True, creates table if it doesn't exist
         
     Returns:
         True if upload successful, False otherwise
@@ -229,17 +291,36 @@ def upload_to_bigquery(df: pd.DataFrame, table_id: str = None) -> bool:
     
     table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
     
-    job_config = bigquery.LoadJobConfig(
-        write_disposition="WRITE_APPEND",  # Append to table
-        autodetect=True,  # Auto-detect schema
-    )
+    # Check if table exists
+    table_exists = check_table_exists(table_id)
+    
+    if not table_exists:
+        if create_if_needed:
+            logger.info(f"Table does not exist. Creating table {table_id}...")
+            # First, create table with schema from first batch of data
+            job_config = bigquery.LoadJobConfig(
+                write_disposition="WRITE_TRUNCATE",  # Create new table
+                autodetect=True,  # Auto-detect schema
+            )
+        else:
+            logger.error(f"Table {table_id} does not exist and create_if_needed=False")
+            return False
+    else:
+        logger.info(f"Table exists. Appending data to {table_id}...")
+        job_config = bigquery.LoadJobConfig(
+            write_disposition="WRITE_APPEND",  # Append to existing table
+            autodetect=False,  # Use existing schema
+        )
     
     try:
         logger.info(f"Uploading {len(df)} rows to {table_id}")
         job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
         job.result()  # Wait for the job to complete
         
-        logger.info(f"✅ Successfully uploaded {len(df)} rows to {table_id}")
+        if not table_exists and create_if_needed:
+            logger.info(f"✅ Successfully created table and uploaded {len(df)} rows to {table_id}")
+        else:
+            logger.info(f"✅ Successfully appended {len(df)} rows to {table_id}")
         return True
     except Exception as e:
         logger.error(f"Error uploading to BigQuery: {e}")
