@@ -31,7 +31,7 @@ BIGQUERY_CREDENTIALS_JSON = os.getenv('BIGQUERY_KEY_JSON', None)
 # BigQuery configuration
 PROJECT_ID = "shopper-reviews-477306"
 DATASET_ID = "place_data"
-SOURCE_TABLE = "Map_location"  # Table with place_ids
+SOURCE_TABLE = "Map_location"  # Source table (reads from 'cid' column)
 DESTINATION_TABLE = "place_reviews_full"  # Table to store reviews
 
 # API configuration
@@ -217,13 +217,14 @@ def fetch_all_reviews_for_place(place_id: str) -> Dict[str, Any]:
 
 def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
     """
-    Retrieves place IDs from the source table that need review data fetched.
+    Retrieves CIDs from the source table that need review data fetched.
+    Reads from the 'cid' column in Map_location table.
     
     Args:
         client: BigQuery client
         
     Returns:
-        List of place_id strings
+        List of CID strings (place IDs)
     """
     source_table = f"{PROJECT_ID}.{DATASET_ID}.{SOURCE_TABLE}"
     
@@ -244,7 +245,8 @@ def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
                 WHERE place_id IS NOT NULL
             )
             """
-            logger.info("📊 Fetching place_ids that haven't been processed yet...")
+            logger.info("📊 Reading 'cid' column from Map_location table...")
+            logger.info("📊 Fetching CIDs that haven't been processed yet...")
         except:
             # Table doesn't exist yet, process all
             query = f"""
@@ -252,16 +254,17 @@ def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
             FROM `{source_table}`
             WHERE cid IS NOT NULL
             """
-            logger.info("📊 Destination table doesn't exist, fetching all place_ids...")
+            logger.info("📊 Reading 'cid' column from Map_location table...")
+            logger.info("📊 Destination table doesn't exist, fetching all CIDs...")
         
         result = client.query(query).to_dataframe()
         place_ids = result['place_id'].tolist()
         
-        logger.info(f"✅ Found {len(place_ids)} place(s) to process")
+        logger.info(f"✅ Found {len(place_ids)} CID(s) to process from 'cid' column")
         return place_ids
         
     except Exception as e:
-        logger.error(f"❌ Error fetching place IDs: {e}")
+        logger.error(f"❌ Error fetching CIDs from 'cid' column: {e}")
         return []
 
 
