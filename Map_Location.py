@@ -176,6 +176,51 @@ def collect_places_from_list(place_names: List[str]) -> Optional[pd.DataFrame]:
 
 # --- FUNCTIONS FOR PART 2: BigQuery Upload ---
 
+def combine_opening_hours(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Combines all openingHours columns into a single JSON string column.
+    
+    Finds columns like 'openingHours.Monday', 'openingHours.Tuesday', etc.
+    and combines them into a single 'openingHours' column as a JSON string.
+    
+    Args:
+        df: DataFrame with potentially separate openingHours columns
+        
+    Returns:
+        DataFrame with combined openingHours column
+    """
+    df_copy = df.copy()
+    
+    # Find all columns that start with 'openingHours.'
+    opening_hours_cols = [col for col in df_copy.columns if col.startswith('openingHours.')]
+    
+    if opening_hours_cols:
+        logger.info(f"Combining {len(opening_hours_cols)} openingHours columns into one")
+        
+        # Create a new column with dictionary of all opening hours
+        def combine_hours_row(row):
+            hours_dict = {}
+            for col in opening_hours_cols:
+                # Extract day name (e.g., 'Monday' from 'openingHours.Monday')
+                day = col.replace('openingHours.', '')
+                value = row[col]
+                # Only add if not null/empty
+                if pd.notna(value) and value != '':
+                    hours_dict[day] = value
+            # Return as JSON string for BigQuery compatibility
+            return json.dumps(hours_dict) if hours_dict else None
+        
+        # Create the combined column
+        df_copy['openingHours'] = df_copy.apply(combine_hours_row, axis=1)
+        
+        # Drop the individual columns
+        df_copy = df_copy.drop(columns=opening_hours_cols)
+        
+        logger.info(f"✅ Combined openingHours columns into single JSON column")
+    
+    return df_copy
+
+
 def sanitize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
     Sanitizes DataFrame column names to be BigQuery-compatible.
@@ -339,6 +384,9 @@ def upload_to_bigquery(df: pd.DataFrame, table_id: str = None, create_if_needed:
         return False
     
     table_id = table_id or f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
+    
+    # Combine openingHours columns into one
+    df = combine_opening_hours(df)
     
     # Sanitize column names for BigQuery compatibility
     df = sanitize_column_names(df)
