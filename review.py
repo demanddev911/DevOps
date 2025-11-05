@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Google Reviews Data Fetcher and BigQuery Uploader
-Fetches full review data for places from Google Reviews API and stores in BigQuery.
+Google Reviews Data Fetcher and BigQuery Uploader - FLATTENED SCHEMA
+
+Fetches full review data from Google Reviews API and stores in BigQuery.
+Each review is stored as ONE row with individual columns (no JSON).
 
 Features:
+- FLATTENED structure: Each review = One row
 - Incremental processing (timestamp-based)
 - Pagination handling (nextPageToken)
-- Full data capture (reviews, topics, metadata)
 - Robust error handling and retries
 - Progress tracking and logging
 """
@@ -32,7 +34,7 @@ BIGQUERY_CREDENTIALS_JSON = os.getenv('BIGQUERY_KEY_JSON', None)
 PROJECT_ID = "shopper-reviews-477306"
 DATASET_ID = "place_data"
 SOURCE_TABLE = "Map_location"  # Source table (reads from 'cid' column)
-DESTINATION_TABLE = "place_reviews_full"  # Table to store reviews
+DESTINATION_TABLE = "place_reviews_full"  # FLATTENED table
 
 # API configuration
 API_HOST = "google-search-master-mega.p.rapidapi.com"
@@ -56,22 +58,16 @@ logger = logging.getLogger(__name__)
 # ==================== BIGQUERY CLIENT ====================
 
 def get_bigquery_client() -> Optional[bigquery.Client]:
-    """
-    Creates and returns a BigQuery client with proper credentials.
-    
-    Returns:
-        BigQuery client or None on error
-    """
+    """Creates and returns a BigQuery client with proper credentials."""
     try:
         if BIGQUERY_CREDENTIALS_JSON:
-            # Load from environment variable (JSON string)
             credentials_dict = json.loads(BIGQUERY_CREDENTIALS_JSON)
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_dict,
                 scopes=["https://www.googleapis.com/auth/cloud-platform"],
             )
         else:
-            # Load from hardcoded credentials (fallback)
+            # Fallback to hardcoded credentials
             credentials_dict = {
                 "type": "service_account",
                 "project_id": "shopper-reviews-477306",
@@ -93,23 +89,15 @@ def get_bigquery_client() -> Optional[bigquery.Client]:
         client = bigquery.Client(credentials=credentials, project=PROJECT_ID)
         logger.info(f"✅ Connected to BigQuery project: {PROJECT_ID}")
         return client
+        
     except Exception as e:
         logger.error(f"❌ Error creating BigQuery client: {e}")
         return None
 
-# ==================== DATA FETCHING ====================
+# ==================== API FUNCTIONS ====================
 
 def fetch_reviews_for_place(place_id: str, page: int = 1) -> Optional[Dict[str, Any]]:
-    """
-    Fetches review data for a single place from Google Reviews API.
-    
-    Args:
-        place_id: The place CID to fetch reviews for
-        page: Page number to fetch (for pagination)
-        
-    Returns:
-        Dictionary containing full API response or None on error
-    """
+    """Fetches review data for a single page from Google Reviews API."""
     for attempt in range(RETRY_ATTEMPTS):
         try:
             conn = http.client.HTTPSConnection(API_HOST)
@@ -119,11 +107,10 @@ def fetch_reviews_for_place(place_id: str, page: int = 1) -> Optional[Dict[str, 
                 'x-rapidapi-host': API_HOST
             }
             
-            # Build query parameters
             params = f"?cid={place_id}&sortBy=mostRelevant&gl=us&hl=en&page={page}"
             endpoint = API_ENDPOINT + params
             
-            logger.info(f"📡 Fetching page {page} for place {place_id}...")
+            logger.info(f"📡 Fetching page {page} for CID {place_id}...")
             
             conn.request("GET", endpoint, headers=headers)
             res = conn.getresponse()
@@ -131,15 +118,15 @@ def fetch_reviews_for_place(place_id: str, page: int = 1) -> Optional[Dict[str, 
             
             if res.status == 200:
                 result = json.loads(data.decode("utf-8"))
-                logger.info(f"✅ Successfully fetched page {page} for place {place_id}")
+                logger.info(f"✅ Page {page} fetched successfully")
                 return result
             else:
-                logger.warning(f"⚠️ API returned status {res.status} for place {place_id}, attempt {attempt + 1}/{RETRY_ATTEMPTS}")
+                logger.warning(f"⚠️ API status {res.status}, attempt {attempt + 1}/{RETRY_ATTEMPTS}")
                 if attempt < RETRY_ATTEMPTS - 1:
                     time.sleep(RETRY_DELAY)
                     
         except Exception as e:
-            logger.error(f"❌ Error fetching reviews for place {place_id}, attempt {attempt + 1}/{RETRY_ATTEMPTS}: {e}")
+            logger.error(f"❌ Error: {e}, attempt {attempt + 1}/{RETRY_ATTEMPTS}")
             if attempt < RETRY_ATTEMPTS - 1:
                 time.sleep(RETRY_DELAY)
     
@@ -147,42 +134,24 @@ def fetch_reviews_for_place(place_id: str, page: int = 1) -> Optional[Dict[str, 
 
 
 def fetch_all_reviews_for_place(place_id: str) -> Dict[str, Any]:
-    """
-    Fetches ALL reviews for a place by following pagination.
-    
-    Args:
-        place_id: The place CID to fetch reviews for
-        
-    Returns:
-        Dictionary containing aggregated review data:
-        {
-            'place_id': str,
-            'total_reviews': int,
-            'reviews': list of all reviews,
-            'topics': list of topics,
-            'metadata': dict of API metadata,
-            'pages_fetched': int
-        }
-    """
+    """Fetches ALL reviews for a place by following pagination."""
     all_reviews = []
     all_topics = []
     metadata = {}
     page = 1
     
-    logger.info(f"🔍 Starting to fetch all reviews for place {place_id}...")
+    logger.info(f"🔍 Fetching all reviews for CID {place_id}...")
     
     while page <= MAX_PAGES:
         result = fetch_reviews_for_place(place_id, page)
         
         if not result:
-            logger.warning(f"⚠️ No data received for page {page}, stopping pagination")
+            logger.warning(f"⚠️ No data for page {page}, stopping")
             break
         
-        # Extract reviews from this page
         reviews = result.get('reviews', [])
         all_reviews.extend(reviews)
         
-        # Extract topics (usually same across pages, take from first page)
         if page == 1:
             all_topics = result.get('topics', [])
             metadata = {
@@ -190,18 +159,17 @@ def fetch_all_reviews_for_place(place_id: str) -> Dict[str, Any]:
                 'credits': result.get('credits', 0),
             }
         
-        logger.info(f"✅ Page {page}: {len(reviews)} reviews fetched")
+        logger.info(f"✅ Page {page}: {len(reviews)} reviews")
         
-        # Check for next page
         next_page_token = result.get('nextPageToken')
         if not next_page_token or len(reviews) == 0:
-            logger.info(f"✅ No more pages available, stopping at page {page}")
+            logger.info(f"✅ All pages fetched (stopped at page {page})")
             break
         
         page += 1
-        time.sleep(0.5)  # Rate limiting
+        time.sleep(0.5)
     
-    logger.info(f"🎉 Completed fetching for place {place_id}: {len(all_reviews)} total reviews, {len(all_topics)} topics")
+    logger.info(f"🎉 Total: {len(all_reviews)} reviews, {len(all_topics)} topics")
     
     return {
         'place_id': place_id,
@@ -209,27 +177,74 @@ def fetch_all_reviews_for_place(place_id: str) -> Dict[str, Any]:
         'reviews': all_reviews,
         'topics': all_topics,
         'metadata': metadata,
-        'pages_fetched': page,
-        'timestamp': datetime.now(timezone.utc).isoformat()
+        'pages_fetched': page
     }
+
+# ==================== DATA FLATTENING ====================
+
+def flatten_reviews_to_rows(review_data: Dict[str, Any]) -> pd.DataFrame:
+    """
+    Flattens review data into individual rows.
+    Each review becomes ONE row with all fields as separate columns.
+    
+    Args:
+        review_data: Dictionary containing review data from API
+        
+    Returns:
+        DataFrame with flattened review rows (one row per review)
+    """
+    place_id = review_data['place_id']
+    reviews = review_data['reviews']
+    current_time = datetime.now(timezone.utc)
+    current_date = current_time.date()
+    
+    rows = []
+    
+    for review in reviews:
+        # Extract user data safely
+        user = review.get('user', {})
+        
+        # Parse ISO date
+        iso_date = review.get('isoDate')
+        try:
+            iso_timestamp = datetime.fromisoformat(iso_date.replace('Z', '+00:00')) if iso_date else None
+        except:
+            iso_timestamp = None
+        
+        # Create flattened row - each review = one row
+        row = {
+            'place_id': place_id,
+            'rating': review.get('rating'),
+            'date': review.get('date'),
+            'isoDate': iso_timestamp,
+            'snippet': review.get('snippet'),
+            'likes': review.get('likes'),
+            'reviewer_name': user.get('name'),
+            'reviewer_link': user.get('link'),
+            'reviewer_thumbnail': user.get('thumbnail'),
+            'reviewer_reviews': user.get('reviews'),
+            'reviewer_photos': user.get('photos'),
+            'timestamp': current_time,
+            'fetch_date': current_date,
+        }
+        
+        rows.append(row)
+    
+    df = pd.DataFrame(rows)
+    
+    logger.info(f"✅ Flattened {len(rows)} reviews into individual rows")
+    return df
 
 # ==================== BIGQUERY OPERATIONS ====================
 
-def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
+def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List[str]:
     """
-    Retrieves CIDs from the source table that need review data fetched.
-    Reads from the 'cid' column in Map_location table.
-    
-    Args:
-        client: BigQuery client
-        
-    Returns:
-        List of CID strings (place IDs)
+    Retrieves CIDs from the source table (Map_location) that need reviews fetched.
+    Reads from 'cid' column.
     """
     source_table = f"{PROJECT_ID}.{DATASET_ID}.{SOURCE_TABLE}"
     
     try:
-        # Check if destination table exists to find already processed places
         dest_table = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
         
         try:
@@ -245,8 +260,9 @@ def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
                 WHERE place_id IS NOT NULL
             )
             """
+            if limit:
+                query += f" LIMIT {limit}"
             logger.info("📊 Reading 'cid' column from Map_location table...")
-            logger.info("📊 Fetching CIDs that haven't been processed yet...")
         except:
             # Table doesn't exist yet, process all
             query = f"""
@@ -254,8 +270,9 @@ def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
             FROM `{source_table}`
             WHERE cid IS NOT NULL
             """
-            logger.info("📊 Reading 'cid' column from Map_location table...")
-            logger.info("📊 Destination table doesn't exist, fetching all CIDs...")
+            if limit:
+                query += f" LIMIT {limit}"
+            logger.info("📊 Destination table doesn't exist, reading all CIDs from Map_location...")
         
         result = client.query(query).to_dataframe()
         place_ids = result['place_id'].tolist()
@@ -270,13 +287,8 @@ def get_place_ids_to_process(client: bigquery.Client) -> List[str]:
 
 def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
     """
-    Creates the place_reviews_full table if it doesn't exist.
-    
-    Args:
-        client: BigQuery client
-        
-    Returns:
-        True if successful, False otherwise
+    Creates the place_reviews_full table with FLATTENED structure.
+    Each review is stored as a separate row with individual columns.
     """
     table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
     
@@ -289,14 +301,19 @@ def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
         except:
             pass
         
-        # Create table with schema (using STRING for JSON compatibility)
+        # Create FLATTENED table schema - each review is a separate row
         schema = [
             bigquery.SchemaField("place_id", "STRING", mode="REQUIRED"),
-            bigquery.SchemaField("total_reviews", "INTEGER"),
-            bigquery.SchemaField("pages_fetched", "INTEGER"),
-            bigquery.SchemaField("reviews", "STRING"),  # JSON stored as STRING
-            bigquery.SchemaField("topics", "STRING"),   # JSON stored as STRING
-            bigquery.SchemaField("metadata", "STRING"), # JSON stored as STRING
+            bigquery.SchemaField("rating", "INTEGER"),
+            bigquery.SchemaField("date", "STRING"),
+            bigquery.SchemaField("isoDate", "TIMESTAMP"),
+            bigquery.SchemaField("snippet", "STRING"),
+            bigquery.SchemaField("likes", "INTEGER"),
+            bigquery.SchemaField("reviewer_name", "STRING"),
+            bigquery.SchemaField("reviewer_link", "STRING"),
+            bigquery.SchemaField("reviewer_thumbnail", "STRING"),
+            bigquery.SchemaField("reviewer_reviews", "INTEGER"),
+            bigquery.SchemaField("reviewer_photos", "INTEGER"),
             bigquery.SchemaField("timestamp", "TIMESTAMP"),
             bigquery.SchemaField("fetch_date", "DATE"),
         ]
@@ -304,7 +321,7 @@ def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
         table = bigquery.Table(table_id, schema=schema)
         table = client.create_table(table)
         
-        logger.info(f"✅ Created table {DESTINATION_TABLE}")
+        logger.info(f"✅ Created FLATTENED table {DESTINATION_TABLE} (each review = one row)")
         return True
         
     except Exception as e:
@@ -314,128 +331,140 @@ def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
 
 def upload_review_data_to_bigquery(client: bigquery.Client, review_data: Dict[str, Any]) -> bool:
     """
-    Uploads review data to BigQuery.
-    
-    Args:
-        client: BigQuery client
-        review_data: Dictionary containing review data
-        
-    Returns:
-        True if successful, False otherwise
+    Uploads FLATTENED review data to BigQuery.
+    Each review is stored as a separate row.
     """
     table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
     
     try:
-        # Prepare data for upload
-        row = {
-            'place_id': review_data['place_id'],
-            'total_reviews': review_data['total_reviews'],
-            'pages_fetched': review_data['pages_fetched'],
-            'reviews': json.dumps(review_data['reviews']),
-            'topics': json.dumps(review_data['topics']),
-            'metadata': json.dumps(review_data['metadata']),
-            'timestamp': datetime.now(timezone.utc),
-            'fetch_date': datetime.now(timezone.utc).date(),
-        }
+        # Flatten reviews into individual rows
+        df = flatten_reviews_to_rows(review_data)
         
-        # Create DataFrame
-        df = pd.DataFrame([row])
+        if df.empty:
+            logger.warning("No reviews to upload")
+            return False
         
         # Upload to BigQuery
         job_config = bigquery.LoadJobConfig(
             write_disposition="WRITE_APPEND",
         )
         
+        logger.info(f"Uploading {len(df)} review row(s) for place {review_data['place_id']}...")
         job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
         job.result()  # Wait for job to complete
         
-        logger.info(f"✅ Uploaded review data for place {review_data['place_id']} to BigQuery")
+        logger.info(f"✅ Uploaded {len(df)} review row(s) for place {review_data['place_id']} to BigQuery")
         return True
         
     except Exception as e:
         logger.error(f"❌ Error uploading to BigQuery: {e}")
         return False
 
-# ==================== MAIN WORKFLOW ====================
+# ==================== MAIN EXECUTION ====================
+
+def process_single_place(client: bigquery.Client, place_id: str) -> bool:
+    """Process reviews for a single place."""
+    try:
+        logger.info(f"\n{'='*60}")
+        logger.info(f"📍 Processing CID: {place_id}")
+        logger.info(f"{'='*60}")
+        
+        # Fetch all reviews
+        review_data = fetch_all_reviews_for_place(place_id)
+        
+        if review_data['total_reviews'] == 0:
+            logger.warning("⚠️ No reviews found, skipping")
+            return False
+        
+        # Upload to BigQuery (flattened format)
+        if upload_review_data_to_bigquery(client, review_data):
+            logger.info(f"✅ Success: {review_data['total_reviews']} review rows uploaded")
+            return True
+        else:
+            logger.error("❌ Upload failed")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Error processing place {place_id}: {e}")
+        return False
+
 
 def main():
-    """
-    Main workflow:
-    1. Connect to BigQuery
-    2. Get place IDs to process
-    3. For each place ID:
-       - Fetch all reviews (with pagination)
-       - Upload to BigQuery
-    4. Report summary
-    """
-    logger.info("=" * 60)
+    """Main entry point for the script."""
     logger.info("🚀 Starting Google Reviews Data Fetcher")
-    logger.info("=" * 60)
+    logger.info(f"📊 Source: {PROJECT_ID}.{DATASET_ID}.{SOURCE_TABLE} (cid column)")
+    logger.info(f"📊 Destination: {PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE} (FLATTENED)")
+    logger.info(f"🗂️ Schema: Each review = One row with individual columns")
     
-    # Step 1: Connect to BigQuery
+    # Get BigQuery client
     client = get_bigquery_client()
     if not client:
-        logger.error("❌ Failed to connect to BigQuery, exiting")
+        logger.error("❌ Failed to create BigQuery client")
         return
     
-    # Step 2: Create destination table if needed
+    # Create destination table if needed
     if not create_reviews_table_if_not_exists(client):
-        logger.error("❌ Failed to create destination table, exiting")
+        logger.error("❌ Failed to create destination table")
         return
     
-    # Step 3: Get place IDs to process
-    place_ids = get_place_ids_to_process(client)
+    # Get places to process
+    place_ids = get_place_ids_to_process(client, limit=5)  # Remove limit for full run
     
     if not place_ids:
-        logger.info("✅ No new places to process, exiting")
+        logger.info("✅ No new places to process!")
         return
     
-    logger.info(f"📊 Processing {len(place_ids)} place(s)...")
+    logger.info(f"\n📊 Processing {len(place_ids)} place(s)...\n")
     
-    # Step 4: Process each place
+    # Process each place
     successful = 0
     failed = 0
+    skipped = 0
+    total_review_rows = 0
     
     for idx, place_id in enumerate(place_ids, 1):
-        logger.info(f"\n{'=' * 60}")
-        logger.info(f"📍 Processing place {idx}/{len(place_ids)}: {place_id}")
-        logger.info(f"{'=' * 60}")
-        
         try:
-            # Fetch all review data
+            logger.info(f"\n📍 Place {idx}/{len(place_ids)}: {place_id}")
+            
             review_data = fetch_all_reviews_for_place(place_id)
             
             if review_data['total_reviews'] == 0:
-                logger.warning(f"⚠️ No reviews found for place {place_id}, skipping")
+                logger.warning("⚠️ No reviews found, skipping")
+                skipped += 1
                 continue
             
-            # Upload to BigQuery
             if upload_review_data_to_bigquery(client, review_data):
                 successful += 1
-                logger.info(f"✅ Successfully processed place {place_id}")
-                logger.info(f"   📊 {review_data['total_reviews']} reviews, {len(review_data['topics'])} topics")
+                total_review_rows += review_data['total_reviews']
+                logger.info(f"✅ Success: {review_data['total_reviews']} review rows uploaded")
             else:
                 failed += 1
-                logger.error(f"❌ Failed to upload data for place {place_id}")
+                logger.error("❌ Upload failed")
                 
+        except KeyboardInterrupt:
+            logger.info(f"\n⚠️ Interrupted by user. Progress: {successful} done, {failed} failed")
+            break
+            
         except Exception as e:
             failed += 1
-            logger.error(f"❌ Error processing place {place_id}: {e}")
+            logger.error(f"❌ Error: {e}")
         
-        # Rate limiting between places
+        # Rate limiting
         if idx < len(place_ids):
             time.sleep(1)
     
-    # Step 5: Report summary
-    logger.info("\n" + "=" * 60)
-    logger.info("📊 SUMMARY")
-    logger.info("=" * 60)
-    logger.info(f"✅ Successful: {successful}")
-    logger.info(f"❌ Failed: {failed}")
-    logger.info(f"📊 Total processed: {successful + failed}/{len(place_ids)}")
-    logger.info("=" * 60)
-    logger.info("🎉 Google Reviews Data Fetcher completed!")
-    logger.info("=" * 60)
+    # Summary
+    logger.info(f"\n{'='*60}")
+    logger.info("📊 FINAL SUMMARY")
+    logger.info(f"{'='*60}")
+    logger.info(f"✅ Successful: {successful} places")
+    logger.info(f"❌ Failed: {failed} places")
+    logger.info(f"⏭️ Skipped: {skipped} places")
+    logger.info(f"📊 Total Review Rows: {total_review_rows:,}")
+    if successful > 0:
+        logger.info(f"📊 Avg Reviews/Place: {total_review_rows/successful:.1f}")
+    logger.info(f"{'='*60}")
+    logger.info("✅ Script completed!")
 
 
 if __name__ == "__main__":
