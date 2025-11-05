@@ -296,7 +296,7 @@ def create_reviews_table_if_not_exists(client: bigquery.Client) -> bool:
 
 
 def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List[str]:
-    """Gets CIDs from Map_location that need processing."""
+    """Gets CIDs from Map_location that need processing (excludes already processed places)."""
     source_table = f"{PROJECT_ID}.{DATASET_ID}.{SOURCE_TABLE}"
     
     try:
@@ -304,6 +304,7 @@ def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List
         
         try:
             client.get_table(dest_table)
+            # IMPORTANT: Only fetch places NOT already in destination table
             query = f"""
             SELECT DISTINCT cid as place_id
             FROM `{source_table}`
@@ -316,7 +317,7 @@ def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List
             """
             if limit:
                 query += f" LIMIT {limit}"
-            logger.info("📊 Reading 'cid' column...")
+            logger.info("📊 Checking for NEW places only (excludes already processed)...")
         except:
             query = f"""
             SELECT DISTINCT cid as place_id
@@ -325,12 +326,17 @@ def get_place_ids_to_process(client: bigquery.Client, limit: int = None) -> List
             """
             if limit:
                 query += f" LIMIT {limit}"
-            logger.info("📊 Reading all CIDs...")
+            logger.info("📊 Reading all CIDs (destination table doesn't exist yet)...")
         
         result = client.query(query).to_dataframe()
         place_ids = result['place_id'].tolist()
         
-        logger.info(f"✅ Found {len(place_ids)} CID(s)")
+        if len(place_ids) == 0:
+            logger.info(f"✅ All places already processed! No API calls needed.")
+        else:
+            logger.info(f"✅ Found {len(place_ids)} NEW place(s) to process")
+            logger.info(f"💰 This will make ~{len(place_ids) * 3} API calls (avg 3 pages/place)")
+        
         return place_ids
         
     except Exception as e:
@@ -371,11 +377,35 @@ def upload_review_data_to_bigquery(client: bigquery.Client, review_data: Dict[st
 
 # ==================== MAIN ====================
 
+def check_if_place_already_processed(client: bigquery.Client, place_id: str) -> bool:
+    """Check if a place was already processed (to avoid wasted API calls)."""
+    table_id = f"{PROJECT_ID}.{DATASET_ID}.{DESTINATION_TABLE}"
+    
+    try:
+        query = f"""
+        SELECT COUNT(*) as count
+        FROM `{table_id}`
+        WHERE place_id = '{place_id}'
+        """
+        result = client.query(query).to_dataframe()
+        count = result['count'].iloc[0]
+        
+        if count > 0:
+            logger.warning(f"⚠️ Place {place_id} already has {count} reviews in BigQuery!")
+            logger.warning(f"⚠️ SKIPPING API call to avoid wasting credits")
+            return True
+        return False
+        
+    except Exception:
+        return False
+
+
 def main():
     """Main entry point."""
     logger.info("🚀 Starting Review Fetcher")
     logger.info(f"📊 Source: {SOURCE_TABLE} (cid)")
     logger.info(f"📊 Destination: {DESTINATION_TABLE} (with review_id + deduplication)")
+    logger.info(f"💰 API calls cost money - script will skip already-processed places")
     
     client = get_bigquery_client()
     if not client:
@@ -387,7 +417,8 @@ def main():
     place_ids = get_place_ids_to_process(client, limit=5)
     
     if not place_ids:
-        logger.info("✅ No new places!")
+        logger.info("✅ No new places! All places already processed.")
+        logger.info("💰 No API calls needed - saving your credits!")
         return
     
     logger.info(f"\n📊 Processing {len(place_ids)} place(s)...\n")
@@ -400,6 +431,11 @@ def main():
     for idx, place_id in enumerate(place_ids, 1):
         try:
             logger.info(f"\n📍 Place {idx}/{len(place_ids)}: {place_id}")
+            
+            # IMPORTANT: Check before making API call!
+            if check_if_place_already_processed(client, place_id):
+                skipped += 1
+                continue
             
             review_data = fetch_all_reviews_for_place(place_id)
             
