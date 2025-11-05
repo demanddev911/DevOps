@@ -182,6 +182,7 @@ def combine_opening_hours(df: pd.DataFrame) -> pd.DataFrame:
     
     Finds columns like 'openingHours.Monday', 'openingHours.Tuesday', etc.
     and combines them into a single 'openingHours' column as a JSON string.
+    Also cleans Unicode characters for better readability.
     
     Args:
         df: DataFrame with potentially separate openingHours columns
@@ -197,6 +198,23 @@ def combine_opening_hours(df: pd.DataFrame) -> pd.DataFrame:
     if opening_hours_cols:
         logger.info(f"Combining {len(opening_hours_cols)} openingHours columns into one")
         
+        def clean_hours_text(text):
+            """Clean Unicode characters from opening hours text"""
+            if not isinstance(text, str):
+                return text
+            
+            # Replace Unicode characters with standard equivalents
+            text = text.replace('\u202f', ' ')      # Narrow no-break space → regular space
+            text = text.replace('\u2013', '-')      # En dash → hyphen
+            text = text.replace('\u2014', '-')      # Em dash → hyphen
+            text = text.replace('\xa0', ' ')        # Non-breaking space → regular space
+            text = text.replace('\u2009', ' ')      # Thin space → regular space
+            
+            # Remove multiple spaces
+            text = ' '.join(text.split())
+            
+            return text
+        
         # Create a new column with dictionary of all opening hours
         def combine_hours_row(row):
             hours_dict = {}
@@ -206,9 +224,11 @@ def combine_opening_hours(df: pd.DataFrame) -> pd.DataFrame:
                 value = row[col]
                 # Only add if not null/empty
                 if pd.notna(value) and value != '':
-                    hours_dict[day] = value
+                    # Clean the value
+                    cleaned_value = clean_hours_text(value)
+                    hours_dict[day] = cleaned_value
             # Return as JSON string for BigQuery compatibility
-            return json.dumps(hours_dict) if hours_dict else None
+            return json.dumps(hours_dict, ensure_ascii=False) if hours_dict else None
         
         # Create the combined column
         df_copy['openingHours'] = df_copy.apply(combine_hours_row, axis=1)
