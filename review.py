@@ -115,31 +115,56 @@ def fetch_reviews_for_place(place_id: str, page: int = 1) -> Optional[Dict[str, 
     return None
 
 
-def fetch_all_reviews_for_place(place_id: str) -> Dict[str, Any]:
-    """Fetches ALL reviews with pagination."""
+def fetch_all_reviews_for_place(place_id: str, max_pages: int = None) -> Dict[str, Any]:
+    """
+    Fetches ALL reviews with pagination.
+    
+    Args:
+        place_id: The place CID to fetch reviews for
+        max_pages: Maximum pages to fetch (None = unlimited, fetch ALL)
+    
+    Returns:
+        Dictionary with all reviews and metadata
+    """
     all_reviews = []
     page = 1
+    max_pages = max_pages or MAX_PAGES  # Use global setting if not specified
     
     logger.info(f"🔍 Fetching reviews for CID {place_id}...")
+    if max_pages:
+        logger.info(f"⚠️ Limited to {max_pages} pages max")
+    else:
+        logger.info(f"✅ No page limit - fetching ALL reviews")
     
-    while page <= MAX_PAGES:
+    while True:
+        # Check page limit if set
+        if max_pages and page > max_pages:
+            logger.warning(f"⚠️ Reached max_pages limit ({max_pages}), stopping")
+            logger.warning(f"⚠️ May have missed some reviews! Set max_pages=None for all")
+            break
+        
         result = fetch_reviews_for_place(place_id, page)
         
         if not result:
+            logger.warning(f"⚠️ API returned no data for page {page}")
             break
         
         reviews = result.get('reviews', [])
         all_reviews.extend(reviews)
         
-        logger.info(f"✅ Page {page}: {len(reviews)} reviews")
+        logger.info(f"✅ Page {page}: {len(reviews)} reviews (Total so far: {len(all_reviews)})")
         
-        if not result.get('nextPageToken') or len(reviews) == 0:
+        # Check if more pages available
+        next_token = result.get('nextPageToken')
+        
+        if not next_token or len(reviews) == 0:
+            logger.info(f"✅ No more pages available - fetched ALL reviews")
             break
         
         page += 1
-        time.sleep(0.5)
+        time.sleep(0.5)  # Rate limiting
     
-    logger.info(f"🎉 Total: {len(all_reviews)} reviews")
+    logger.info(f"🎉 Total: {len(all_reviews)} reviews from {page} page(s)")
     
     return {
         'place_id': place_id,
@@ -406,6 +431,12 @@ def main():
     logger.info(f"📊 Source: {SOURCE_TABLE} (cid)")
     logger.info(f"📊 Destination: {DESTINATION_TABLE} (with review_id + deduplication)")
     logger.info(f"💰 API calls cost money - script will skip already-processed places")
+    
+    if MAX_PAGES:
+        logger.warning(f"⚠️ MAX_PAGES set to {MAX_PAGES} - may not fetch all reviews!")
+        logger.warning(f"💡 Set MAX_PAGES = None in config to fetch ALL reviews")
+    else:
+        logger.info(f"✅ MAX_PAGES = None - will fetch ALL available reviews")
     
     client = get_bigquery_client()
     if not client:
