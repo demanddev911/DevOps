@@ -58,18 +58,22 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
     
     /* ============================================================
-       ROOT VARIABLES - Professional Color System
+       ROOT VARIABLES - Google Colors System
     ============================================================ */
     :root {
-        --primary: #6366f1;
-        --primary-dark: #4f46e5;
-        --primary-light: #818cf8;
-        --secondary: #ec4899;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-        --info: #06b6d4;
-        --dark: #0f172a;
+        --google-blue: #4285f4;
+        --google-red: #ea4335;
+        --google-yellow: #fbbc04;
+        --google-green: #34a853;
+        --primary: #4285f4;
+        --primary-dark: #3367d6;
+        --primary-light: #5e97f6;
+        --secondary: #ea4335;
+        --success: #34a853;
+        --warning: #fbbc04;
+        --danger: #ea4335;
+        --info: #4285f4;
+        --dark: #202124;
         --gray-50: #f9fafb;
         --gray-100: #f3f4f6;
         --gray-200: #e5e7eb;
@@ -115,7 +119,7 @@ st.markdown("""
        MAIN LAYOUT
     ============================================================ */
     .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-yellow) 75%, var(--google-green) 100%);
         background-size: 400% 400%;
         animation: gradientShift 15s ease infinite;
         padding: 2rem 1rem;
@@ -195,7 +199,7 @@ st.markdown("""
         left: 0;
         right: 0;
         height: 4px;
-        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(90deg, var(--google-blue) 0%, var(--google-red) 33%, var(--google-yellow) 66%, var(--google-green) 100%);
         transform: scaleX(0);
         transform-origin: left;
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -214,7 +218,7 @@ st.markdown("""
     div[data-testid="stMetricValue"] {
         font-size: 2.5rem;
         font-weight: 900;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -259,15 +263,15 @@ st.markdown("""
         text-align: center;
         padding: 3rem 0 2rem 0;
         margin-bottom: 3rem;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+        background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(234, 67, 53, 0.05) 50%, rgba(52, 168, 83, 0.05) 100%);
         border-radius: var(--radius-3xl);
-        border: 2px solid rgba(102, 126, 234, 0.1);
+        border: 2px solid rgba(66, 133, 244, 0.1);
     }
     
     .hero-title {
         font-size: 3.5rem;
         font-weight: 900;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 33%, var(--google-yellow) 66%, var(--google-green) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -320,7 +324,7 @@ st.markdown("""
         left: 0;
         width: 80px;
         height: 3px;
-        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(90deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
     }
     
     /* ============================================================
@@ -335,7 +339,7 @@ st.markdown("""
         text-align: right;
         font-family: 'Cairo', sans-serif;
         border-right: 6px solid transparent;
-        border-image: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+        border-image: linear-gradient(180deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
         border-image-slice: 1;
         box-shadow: var(--shadow-xl);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -350,7 +354,7 @@ st.markdown("""
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(236, 72, 153, 0.03) 100%);
+        background: linear-gradient(135deg, rgba(66, 133, 244, 0.03) 0%, rgba(234, 67, 53, 0.03) 50%, rgba(52, 168, 83, 0.03) 100%);
         opacity: 0;
         transition: opacity 0.4s ease;
     }
@@ -367,7 +371,7 @@ st.markdown("""
     .report-title {
         font-size: 2rem;
         font-weight: 900;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 33%, var(--google-yellow) 66%, var(--google-green) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -385,7 +389,7 @@ st.markdown("""
         right: 0;
         width: 100px;
         height: 3px;
-        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(90deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
     }
     
     .report-content {
@@ -397,13 +401,13 @@ st.markdown("""
     }
     
     .report-content a {
-        color: var(--primary);
+        color: var(--google-blue);
         text-decoration: none;
         font-weight: 700;
         padding: 0.25rem 0.75rem;
         border-radius: var(--radius-md);
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
-        border: 2px solid var(--primary-light);
+        background: linear-gradient(135deg, rgba(66, 133, 244, 0.1) 0%, rgba(52, 168, 83, 0.1) 100%);
+        border: 2px solid var(--google-blue);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: inline-block;
         margin: 0.25rem 0.5rem;
@@ -411,7 +415,7 @@ st.markdown("""
     
     .report-content a:hover {
         color: var(--white);
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-green) 100%);
         transform: translateY(-2px);
         box-shadow: var(--shadow-lg);
     }
@@ -420,14 +424,14 @@ st.markdown("""
        BUTTONS - Modern & Gradient
     ============================================================ */
     .stButton button {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-green) 100%);
         color: white;
         border: none;
         padding: 1rem 2.5rem;
         border-radius: var(--radius-full);
         font-weight: 700;
         font-size: 1rem;
-        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        box-shadow: 0 10px 30px rgba(66, 133, 244, 0.4);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: 0.02em;
         text-transform: uppercase;
@@ -435,8 +439,8 @@ st.markdown("""
     
     .stButton button:hover {
         transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5);
-        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+        box-shadow: 0 15px 40px rgba(66, 133, 244, 0.5);
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
     }
     
     .stButton button:active {
@@ -454,23 +458,23 @@ st.markdown("""
     }
     
     button[key="main_extraction_btn"] {
-        background: linear-gradient(135deg, var(--secondary) 0%, #db2777 100%) !important;
-        box-shadow: 0 10px 30px rgba(236, 72, 153, 0.4) !important;
+        background: linear-gradient(135deg, var(--google-red) 0%, var(--google-yellow) 100%) !important;
+        box-shadow: 0 10px 30px rgba(234, 67, 53, 0.4) !important;
         animation: pulseButton 2s ease-in-out infinite;
     }
     
     @keyframes pulseButton {
         0%, 100% {
-            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.4);
+            box-shadow: 0 10px 30px rgba(234, 67, 53, 0.4);
         }
         50% {
-            box-shadow: 0 15px 40px rgba(236, 72, 153, 0.6);
+            box-shadow: 0 15px 40px rgba(234, 67, 53, 0.6);
         }
     }
     
     button[key="main_extraction_btn"]:hover {
-        box-shadow: 0 15px 40px rgba(236, 72, 153, 0.5) !important;
-        background: linear-gradient(135deg, #f472b6 0%, var(--secondary) 100%) !important;
+        box-shadow: 0 15px 40px rgba(234, 67, 53, 0.5) !important;
+        background: linear-gradient(135deg, var(--google-red) 0%, var(--google-yellow) 50%, var(--google-green) 100%) !important;
     }
     
     /* ============================================================
@@ -478,11 +482,11 @@ st.markdown("""
     ============================================================ */
     .stTabs [data-baseweb="tab-list"] {
         gap: 1rem !important;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%) !important;
+        background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(234, 67, 53, 0.05) 50%, rgba(52, 168, 83, 0.05) 100%) !important;
         padding: 1rem !important;
         border-radius: var(--radius-2xl) !important;
         margin-bottom: 2rem !important;
-        border: 2px solid rgba(102, 126, 234, 0.1) !important;
+        border: 2px solid rgba(66, 133, 244, 0.1) !important;
     }
     
     .stTabs [data-baseweb="tab"] {
@@ -508,35 +512,35 @@ st.markdown("""
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%) !important;
         color: var(--white) !important;
-        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4) !important;
+        box-shadow: 0 10px 30px rgba(66, 133, 244, 0.4) !important;
         border-color: transparent !important;
         transform: translateY(-2px) scale(1.02) !important;
     }
     
     .stTabs [aria-selected="true"]:hover {
-        background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%) !important;
+        background: linear-gradient(135deg, var(--google-blue) 0%, var(--google-yellow) 50%, var(--google-green) 100%) !important;
         transform: translateY(-4px) scale(1.03) !important;
-        box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 15px 40px rgba(66, 133, 244, 0.5) !important;
     }
     
     /* ============================================================
        PROGRESS BAR
     ============================================================ */
     .stProgress > div > div {
-        background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(90deg, var(--google-blue) 0%, var(--google-red) 33%, var(--google-yellow) 66%, var(--google-green) 100%);
         border-radius: var(--radius-full);
-        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
         animation: progressGlow 2s ease-in-out infinite;
     }
     
     @keyframes progressGlow {
         0%, 100% {
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
         }
         50% {
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 16px rgba(66, 133, 244, 0.5);
         }
     }
     
@@ -554,14 +558,14 @@ st.markdown("""
     }
     
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(180deg, var(--google-blue) 0%, var(--google-red) 50%, var(--google-green) 100%);
         border-radius: var(--radius-full);
         border: 2px solid var(--gray-100);
         transition: all 0.3s ease;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, var(--primary-light) 0%, var(--secondary) 100%);
+        background: linear-gradient(180deg, var(--google-blue) 0%, var(--google-yellow) 50%, var(--google-green) 100%);
         border-color: var(--gray-200);
     }
     
