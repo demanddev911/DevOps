@@ -380,9 +380,16 @@ st.markdown("""
         background: #999;
     }
     
-    /* Detailed Report Page Enhancements */
-    .main [direction="rtl"] {
-        font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    /* Detailed Report Page Enhancements - Unified Font */
+    .main [direction="rtl"],
+    .main [direction="rtl"] *,
+    .main div[style*="direction: rtl"],
+    .main div[style*="direction: rtl"] *,
+    .report-section,
+    .report-section *,
+    .report-content,
+    .report-content * {
+        font-family: 'Cairo', sans-serif !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
@@ -397,6 +404,7 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
         border-radius: 8px;
         overflow: hidden;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main table th {
@@ -407,6 +415,7 @@ st.markdown("""
         border: none;
         font-size: 1rem;
         letter-spacing: 0.02em;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main table td {
@@ -415,6 +424,7 @@ st.markdown("""
         line-height: 1.8;
         font-size: 0.9375rem;
         color: #334155;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main table tr:nth-child(even) {
@@ -430,17 +440,20 @@ st.markdown("""
         line-height: 2;
         margin: 15px 0;
         padding-right: 25px;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main li {
         margin-bottom: 12px;
         color: #475569;
         font-size: 1rem;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main strong {
         font-weight: 700;
         color: #0f172a;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main p {
@@ -449,6 +462,7 @@ st.markdown("""
         color: #1e293b;
         font-size: 1.125rem;
         font-weight: 400;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     /* Better text for divs with direction rtl */
@@ -458,6 +472,7 @@ st.markdown("""
         line-height: 2.1;
         color: #1e293b;
         margin-bottom: 18px;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main a {
@@ -466,6 +481,7 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.2s ease;
         border-bottom: 2px solid transparent;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main a:hover {
@@ -474,12 +490,22 @@ st.markdown("""
     }
     
     .main h1, .main h2, .main h3, .main h4 {
-        font-family: 'Cairo', sans-serif;
+        font-family: 'Cairo', sans-serif !important;
         font-weight: 700;
         color: #0f172a;
         margin-top: 1.5em;
         margin-bottom: 0.75em;
         line-height: 1.4;
+    }
+    
+    /* Ensure all divs, spans, and text elements use Cairo font */
+    .main div,
+    .main span,
+    .main label,
+    .main button,
+    .main input,
+    .main textarea {
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .main h1 {
@@ -1463,7 +1489,7 @@ def convert_table_to_html(table_rows, border_color="#3b82f6"):
             bg_color = "#10b981"  # Green
         else:
             bg_color = "#ef4444"  # Red
-        html += f'<th style="background: {bg_color}; color: white; padding: 14px 16px; font-weight: 600; text-align: right; font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; font-family: Cairo, sans-serif;">{cell}</th>'
+        html += f'<th style="background: {bg_color}; color: white; padding: 14px 16px; font-weight: 600; text-align: right; font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; font-family: \'Cairo\', sans-serif;">{cell}</th>'
     html += '</tr></thead>'
     
     # Simple body rows
@@ -1472,7 +1498,7 @@ def convert_table_to_html(table_rows, border_color="#3b82f6"):
         for i, row in enumerate(rows[1:]):
             html += '<tr>'
             for j, cell in enumerate(row):
-                html += f'<td style="padding: 16px; background: white; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-family: Cairo, sans-serif; direction: rtl; color: #374151;">{cell}</td>'
+                html += f'<td style="padding: 16px; background: white; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-family: \'Cairo\', sans-serif; direction: rtl; color: #374151;">{cell}</td>'
             html += '</tr>'
         html += '</tbody>'
     
@@ -1510,6 +1536,10 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     # Remove placeholder link texts like [رابط التعليق 1], [رابط تعليق 2], etc.
     content = re.sub(r'\[رابط\s+[^\]]+\]', '', content)
     content = re.sub(r'\[link\s+[^\]]+\]', '', content, flags=re.IGNORECASE)
+    
+    # Remove [الإثبات text
+    content = re.sub(r'\[الإثبات[^\]]*\]?', '', content)
+    content = re.sub(r'\[الإثبات', '', content)
     
     # Clean up bullet points with empty content after removing links
     content = re.sub(r'•\s*\n', '', content)
@@ -1581,6 +1611,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             font-weight: 600;
             transition: color 0.2s;
             font-size: 1rem;
+            font-family: 'Cairo', sans-serif !important;
         }}
         .evidence-link:hover {{
             color: #1d4ed8;
@@ -1591,20 +1622,24 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             line-height: 1.9;
             direction: rtl;
             text-align: right;
+            font-family: 'Cairo', sans-serif !important;
         }}
         .report-content strong {{
             font-weight: 700;
             color: #1f2937;
+            font-family: 'Cairo', sans-serif !important;
         }}
         .report-content ul, .report-content ol {{
             direction: rtl;
             text-align: right;
             padding-right: 20px;
+            font-family: 'Cairo', sans-serif !important;
         }}
         .report-content li {{
             direction: rtl;
             text-align: right;
             margin-bottom: 8px;
+            font-family: 'Cairo', sans-serif !important;
         }}
     </style>
     
@@ -1634,7 +1669,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             line-height: 1.9;
             font-size: 1.0625rem;
             color: #374151;
-            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'Cairo', sans-serif;
             direction: rtl;
             text-align: right;
         ">
