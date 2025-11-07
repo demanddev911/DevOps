@@ -50,18 +50,41 @@ if 'ai_report_cache' not in st.session_state:
 
 
 # ============================================================
-# CUSTOM CSS - MUHIMMA DESIGN
+# CUSTOM CSS - MUHIMMA DESIGN (OPTIMIZED)
 # ============================================================
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
     
-    /* Base Styles */
-    * {font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;}
-    .main {background: #f5f7fa; padding: 1rem; min-height: 100vh;}
-    .block-container {max-width: 1500px; padding: 2rem; background: white; border-radius: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);}
-    #MainMenu, footer, header {visibility: hidden;}
+    /* ============================================================
+       BASE STYLES
+    ============================================================ */
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    .main {
+        background: #f5f7fa;
+        padding: 1.5rem;
+        min-height: 100vh;
+    }
+    
+    .block-container {
+        max-width: 1500px;
+        padding: 2.5rem 3rem;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+    }
+    
+    #MainMenu, footer, header {
+        visibility: hidden;
+    }
     
     /* Arabic text support */
     .arabic-text {
@@ -70,26 +93,31 @@ st.markdown("""
         text-align: right;
     }
     
-    /* Tabs Styling - Modern Top Tabs */
+    /* ============================================================
+       TABS STYLING - MODERN TOP TABS
+    ============================================================ */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
+        gap: 8px;
         background: #f8f9fa;
-        padding: 8px 12px;
-        border-radius: 12px;
-        margin-bottom: 1rem;
+        padding: 10px 14px;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
+        height: 52px;
         background: white;
-        border-radius: 10px;
+        border-radius: 12px;
         color: #666;
         font-weight: 600;
-        font-size: 0.85rem;
-        padding: 0 1.5rem;
+        font-size: 0.9rem;
+        padding: 0 2rem;
         border: 2px solid #e0e0e0;
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
@@ -106,134 +134,225 @@ st.markdown("""
         border-color: #667eea !important;
         box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35) !important;
         font-weight: 700;
+        transform: translateY(-1px);
     }
     
-    /* Metrics */
+    /* ============================================================
+       METRICS
+    ============================================================ */
     div[data-testid="metric-container"] {
         background: #ffffff;
         border-radius: 20px;
-        padding: 2rem 1.75rem;
+        padding: 2.25rem 2rem;
         border: 2px solid #f0f0f0;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
+    
+    div[data-testid="metric-container"]::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
     div[data-testid="metric-container"]:hover {
         transform: translateY(-6px);
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
         border-color: #667eea;
     }
+    
+    div[data-testid="metric-container"]:hover::before {
+        opacity: 1;
+    }
+    
     div[data-testid="stMetricValue"] {
-        font-size: 2.2rem;
+        font-size: 2.4rem;
         font-weight: 900;
         color: #667eea;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
     }
+    
     div[data-testid="stMetricLabel"] {
         font-size: 0.85rem;
         color: #888;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
     }
     
-    /* Section Headers */
+    /* ============================================================
+       SECTION HEADERS
+    ============================================================ */
     .section-header {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         font-weight: 800;
-        color: #000;
-        margin: 2.5rem 0 1.5rem 0;
-        padding-bottom: 1rem;
+        color: #1a202c;
+        margin: 3rem 0 1.75rem 0;
+        padding-bottom: 1.25rem;
         border-bottom: 3px solid #667eea;
+        position: relative;
     }
     
-    /* Buttons */
+    .section-header::before {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
     .stButton button {
         background: #667eea;
         color: white;
         border: none;
-        padding: 0.75rem 1.5rem;
+        padding: 0.85rem 2rem;
         border-radius: 50px;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
-        transition: all 0.3s ease;
-        letter-spacing: 0.02em;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        border: 2px solid transparent;
     }
+    
     .stButton button:hover {
         transform: translateY(-3px);
         box-shadow: 0 16px 40px rgba(102, 126, 234, 0.45);
+        background: #564ba2;
     }
     
-    /* Reduce button container margin */
+    .stButton button:active {
+        transform: translateY(-1px);
+    }
+    
+    /* Button container spacing */
     .stButton {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
         margin-top: 0;
     }
     
-    /* Info Boxes */
-    .info-box {
-        background: #e3f2fd;
-        padding: 1.25rem 1.75rem;
-        border-radius: 16px;
-        border-left: 5px solid #2196f3;
-        margin: 1.5rem 0;
-        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
-    }
-    .success-box {
-        background: #e8f5e9;
-        padding: 1.25rem 1.75rem;
-        border-radius: 16px;
-        border-left: 5px solid #4caf50;
-        margin: 1.5rem 0;
-        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
-    }
-    .warning-box {
-        background: #fff3e0;
-        padding: 1.25rem 1.75rem;
-        border-radius: 16px;
-        border-left: 5px solid #ff9800;
-        margin: 1.5rem 0;
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
-    }
+    /* ============================================================
+       INFO BOXES
+    ============================================================ */
+    .info-box,
+    .success-box,
+    .warning-box,
     .error-box {
-        background: #ffebee;
-        padding: 1.25rem 1.75rem;
+        padding: 1.5rem 2rem;
         border-radius: 16px;
-        border-left: 5px solid #f44336;
-        margin: 1.5rem 0;
-        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
-    }
-    
-    /* Report Sections - Arabic Content */
-    .report-section {
-        background: #fafafa;
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        direction: rtl;
-        text-align: right;
-        font-family: 'Cairo', sans-serif;
-        border-right: 4px solid #667eea;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        margin: 1.75rem 0;
+        font-size: 0.95rem;
+        line-height: 1.7;
         transition: all 0.3s ease;
     }
     
+    .info-box {
+        background: #e3f2fd;
+        border-left: 5px solid #2196f3;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+    }
+    
+    .info-box:hover {
+        box-shadow: 0 6px 18px rgba(33, 150, 243, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .success-box {
+        background: #e8f5e9;
+        border-left: 5px solid #4caf50;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+    }
+    
+    .success-box:hover {
+        box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .warning-box {
+        background: #fff3e0;
+        border-left: 5px solid #ff9800;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+    }
+    
+    .warning-box:hover {
+        box-shadow: 0 6px 18px rgba(255, 152, 0, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .error-box {
+        background: #ffebee;
+        border-left: 5px solid #f44336;
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
+    }
+    
+    .error-box:hover {
+        box-shadow: 0 6px 18px rgba(244, 67, 54, 0.25);
+        transform: translateX(2px);
+    }
+    
+    /* ============================================================
+       REPORT SECTIONS - ARABIC CONTENT
+    ============================================================ */
+    .report-section {
+        background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        direction: rtl;
+        text-align: right;
+        font-family: 'Cairo', sans-serif;
+        border-right: 5px solid #667eea;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .report-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        opacity: 0.3;
+    }
+    
     .report-section:hover {
-        transform: translateX(4px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+        transform: translateX(6px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+        border-right-color: #564ba2;
     }
     
     .report-title {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: #000;
-        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #1a202c;
+        margin-bottom: 1.5rem;
         font-family: 'Cairo', sans-serif;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
     }
     
     .report-content {
-        font-size: 1rem;
-        line-height: 2;
+        font-size: 1.05rem;
+        line-height: 2.2;
         color: #2d3748;
         font-family: 'Cairo', sans-serif;
         text-align: justify;
@@ -242,58 +361,126 @@ st.markdown("""
     .report-content a {
         color: #667eea;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
         border-bottom: 2px solid #667eea;
-        transition: all 0.2s;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(102, 126, 234, 0.08);
+        transition: all 0.3s ease;
+        display: inline-block;
+        margin: 0 4px;
     }
     
     .report-content a:hover {
-        color: #564ba2;
-        border-bottom-color: #564ba2;
+        color: white;
+        background: #667eea;
+        border-bottom-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
     }
     
-    /* File Uploader */
+    /* ============================================================
+       FILE UPLOADER
+    ============================================================ */
     [data-testid="stFileUploader"] {
         background: #f8f9fa;
         border: 3px dashed #667eea;
         border-radius: 20px;
-        padding: 2rem;
+        padding: 2.5rem;
+        transition: all 0.3s ease;
     }
     
-    /* Radio Buttons */
+    [data-testid="stFileUploader"]:hover {
+        background: #f0f2ff;
+        border-color: #564ba2;
+    }
+    
+    /* ============================================================
+       RADIO BUTTONS
+    ============================================================ */
     .stRadio > div {
         background: white;
-        padding: 1rem;
-        border-radius: 12px;
+        padding: 1.25rem;
+        border-radius: 14px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 2px solid #f0f0f0;
     }
     
-    /* Progress Bar */
+    /* ============================================================
+       PROGRESS BAR
+    ============================================================ */
     .stProgress > div > div {
-        background: linear-gradient(90deg, #667eea 0%, #564ba2 100%);
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
     
-    /* Scrollbar */
+    /* ============================================================
+       SCROLLBAR
+    ============================================================ */
     ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #f1f3f5;
+        border-radius: 10px;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #667eea;
-        border-radius: 4px;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        border: 2px solid #f1f3f5;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #564ba2;
+        background: linear-gradient(180deg, #564ba2 0%, #667eea 100%);
+    }
+    
+    /* ============================================================
+       RESPONSIVE DESIGN
+    ============================================================ */
+    @media (max-width: 768px) {
+        .block-container {
+            padding: 1.5rem 1.25rem;
+        }
+        
+        .section-header {
+            font-size: 1.2rem;
+            margin: 2rem 0 1rem 0;
+        }
+        
+        div[data-testid="stMetricValue"] {
+            font-size: 1.8rem;
+        }
+        
+        .report-section {
+            padding: 1.5rem;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            padding: 0 1rem;
+            font-size: 0.8rem;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
+
+# ============================================================
+# API CONFIGURATION
+# ============================================================
+# Twitter API Configuration
+API_KEY = "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
+API_HOST = "twitter241.p.rapidapi.com"
+MAX_COMMENT_WORKERS = 15
+CONNECTION_TIMEOUT = 15
+
+# Google Gemini AI Configuration
+GEMINI_API_KEY = "AIzaSyBIYTpbNSeo4mOHevMmXvpex4U7-IMP0TI"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+GEMINI_TEMPERATURE = 0.3
+GEMINI_MAX_TOKENS = 4000
 
 # ============================================================
 # TWITTER API CLASSES
@@ -719,14 +906,19 @@ class TwitterExtractor:
 # GEMINI AI ANALYZER
 # ============================================================
 class GeminiAnalyzer:
+    """Google Gemini AI Analyzer with enhanced error handling and retry logic"""
+    
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.headers = {
             "Content-Type": "application/json"
         }
         self.session = self._create_session()
+        self.request_count = 0
+        self.success_count = 0
         
     def _create_session(self) -> requests.Session:
+        """Create session with connection pooling and retry strategy"""
         session = requests.Session()
         retry_strategy = Retry(
             total=3,
@@ -734,14 +926,20 @@ class GeminiAnalyzer:
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=20
+        )
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
 
     def analyze(self, prompt: str, max_tokens: int = GEMINI_MAX_TOKENS) -> Optional[str]:
         """Analyze prompt with Gemini AI with optimized error handling"""
+        self.request_count += 1
         url = f"{GEMINI_API_URL}?key={self.api_key}"
+        
         payload = {
             "contents": [{
                 "parts": [{"text": prompt}]
@@ -751,6 +949,7 @@ class GeminiAnalyzer:
                 "maxOutputTokens": max_tokens
             }
         }
+        
         for attempt in range(3):
             try:
                 response = self.session.post(
@@ -759,29 +958,64 @@ class GeminiAnalyzer:
                     json=payload,
                     timeout=120
                 )
+                
                 if response.status_code == 200:
                     result = response.json()
-                    return result['candidates'][0]['content']['parts'][0]['text']
+                    text = result['candidates'][0]['content']['parts'][0]['text']
+                    self.success_count += 1
+                    return text
+                    
                 elif response.status_code == 429:
-                    wait_time = 2 * (attempt + 1)
+                    # Rate limit - exponential backoff
+                    wait_time = 2 ** (attempt + 1)
                     time.sleep(wait_time)
+                    continue
+                    
                 elif response.status_code >= 500:
+                    # Server error - retry with backoff
                     if attempt < 2:
                         time.sleep(2 * (attempt + 1))
                     continue
-                else:
+                    
+                elif response.status_code == 400:
+                    # Bad request - log and return None
                     return None
+                    
+                else:
+                    # Other errors
+                    return None
+                    
             except requests.exceptions.Timeout:
+                # Timeout - retry with longer wait
                 if attempt < 2:
-                    time.sleep(2 * (attempt + 1))
+                    time.sleep(3 * (attempt + 1))
                 continue
-            except requests.exceptions.RequestException:
+                
+            except requests.exceptions.RequestException as e:
+                # Network errors - retry
                 if attempt < 2:
                     time.sleep(2)
                 continue
-            except (KeyError, ValueError, json.JSONDecodeError):
+                
+            except (KeyError, ValueError, json.JSONDecodeError) as e:
+                # JSON parsing errors - return None
                 return None
+                
+            except Exception as e:
+                # Unexpected errors - log and retry
+                if attempt < 2:
+                    time.sleep(2)
+                continue
+                    
         return None
+    
+    def get_stats(self) -> Dict:
+        """Get analyzer statistics"""
+        return {
+            'total_requests': self.request_count,
+            'successful_requests': self.success_count,
+            'success_rate': (self.success_count / self.request_count * 100) if self.request_count > 0 else 0
+        }
 
 # ============================================================
 # DATA PROCESSING
@@ -845,33 +1079,55 @@ def prepare_dataframe_for_excel(df: pd.DataFrame) -> pd.DataFrame:
 # CHARTS
 # ============================================================
 def create_line_chart(df):
-    """Create engagement timeline chart with optimized data processing"""
+    """
+    Create engagement timeline chart with optimized data processing
+    
+    Args:
+        df: DataFrame with date and engagement columns
+        
+    Returns:
+        Plotly figure or None if data is invalid
+    """
     try:
-        if df is None or df.empty or 'date' not in df.columns or df['date'].isna().all():
+        # Validate input data
+        if df is None or df.empty:
+            return None
+        if 'date' not in df.columns or df['date'].isna().all():
+            return None
+        
+        # Check required columns exist
+        required_cols = ['likes', 'retweets', 'replies']
+        if not all(col in df.columns for col in required_cols):
             return None
 
-        # Optimized aggregation
+        # Optimized aggregation with error handling
         daily_stats = df.groupby('date', as_index=False).agg({
             'likes': 'sum',
             'retweets': 'sum',
             'replies': 'sum'
         })
-        daily_stats['total_engagement'] = daily_stats[['likes', 'retweets', 'replies']].sum(axis=1)
+        
+        # Calculate total engagement
+        daily_stats['total_engagement'] = daily_stats[required_cols].sum(axis=1)
         daily_stats = daily_stats.dropna()
 
-        if daily_stats.empty:
+        if daily_stats.empty or len(daily_stats) < 1:
             return None
 
+        # Create figure with Muhimma purple theme
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=daily_stats['date'],
             y=daily_stats['total_engagement'],
             name='Total Engagement',
-            line=dict(color='#ff6b6b', width=3),
+            line=dict(color='#667eea', width=3),
             mode='lines+markers',
             fill='tozeroy',
-            fillcolor='rgba(255, 107, 107, 0.1)'
+            fillcolor='rgba(102, 126, 234, 0.1)',
+            marker=dict(size=6, color='#667eea')
         ))
+        
+        # Update layout with Muhimma styling
         fig.update_layout(
             title="",
             xaxis_title="",
@@ -882,12 +1138,22 @@ def create_line_chart(df):
             paper_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Inter", color='#666'),
             showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
         fig.update_xaxes(showgrid=False, showline=False)
         fig.update_yaxes(showgrid=True, gridcolor='#f0f0f0', showline=False)
+        
         return fig
+        
     except (KeyError, ValueError, TypeError) as e:
+        return None
+    except Exception as e:
         return None
 
 def create_metric_comparison_chart(df, metric_name, metric_color='#667eea'):
@@ -1178,37 +1444,73 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 # AI REPORT GENERATION - مع روابط إثبات بعد كل جملة + Hyperlinks
 # ============================================================
 def generate_ai_section(gemini: GeminiAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+    """
+    Generate AI section with caching and error handling
+    
+    Args:
+        gemini: GeminiAnalyzer instance
+        section_name: Unique section identifier for caching
+        prompt: AI prompt text
+        max_tokens: Maximum tokens for response
+        
+    Returns:
+        Generated text or error message
+    """
+    # Check cache first
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
+    
+    # Generate new content
     result = gemini.analyze(prompt, max_tokens)
-    if result:
+    
+    if result and result.strip():
+        # Clean formatting markers
         cleaned_result = result.replace('**', '').replace('*', '').strip()
+        
+        # Cache the result
         st.session_state.ai_report_cache[section_name] = cleaned_result
         return cleaned_result
     else:
-        return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
+        # Return error message
+        error_msg = f"⚠️ تعذر إنشاء القسم {section_name}. يرجى المحاولة مرة أخرى."
+        return error_msg
 
 def display_report_section(title: str, content: str):
-    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
+    """
+    Display report section with clickable hyperlinks
+    Converts evidence links to styled clickable buttons
+    
+    Args:
+        title: Section title (Arabic)
+        content: Section content with embedded URLs
+    """
     import re
     
-    # تحويل روابط الإثبات لـ hyperlinks
+    # Convert evidence links to clickable hyperlinks with improved styling
     def make_link_clickable(match):
-        url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 700; border-bottom: 2px solid #667eea; padding: 2px 8px; border-radius: 4px; background: rgba(102, 126, 234, 0.1); transition: all 0.2s;">🔗 دليل</a>'
+        url = match.group(1).strip()
+        # Validate URL format
+        if not url.startswith('http'):
+            return match.group(0)  # Return original if invalid
+        return f'<a href="{url}" target="_blank" style="color: white; background: #667eea; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);" onmouseover="this.style.background=\'#564ba2\'; this.style.boxShadow=\'0 4px 12px rgba(102, 126, 234, 0.4)\';" onmouseout="this.style.background=\'#667eea\'; this.style.boxShadow=\'0 2px 6px rgba(102, 126, 234, 0.3)\';">🔗 دليل</a>'
     
-    # تحويل روابط "دليل:" أيضاً
+    # Convert proof links with full URL display
     def make_proof_link_clickable(match):
-        url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 700; border-bottom: 2px solid #667eea; padding: 2px 8px; border-radius: 4px; background: rgba(102, 126, 234, 0.1); transition: all 0.2s;">🔗 {url}</a>'
+        url = match.group(1).strip()
+        if not url.startswith('http'):
+            return match.group(0)
+        # Shorten URL for display if too long
+        display_url = url if len(url) < 50 else url[:47] + '...'
+        return f'<a href="{url}" target="_blank" style="color: white; background: #667eea; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);" onmouseover="this.style.background=\'#564ba2\'; this.style.boxShadow=\'0 4px 12px rgba(102, 126, 234, 0.4)\';" onmouseout="this.style.background=\'#667eea\'; this.style.boxShadow=\'0 2px 6px rgba(102, 126, 234, 0.3)\';">🔗 {display_url}</a>'
     
-    # Pattern للروابط داخل [الإثبات: ...]
+    # Pattern for links inside [الإثبات: ...]
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
-    # Pattern للروابط داخل "دليل:"
+    # Pattern for links with "دليل:"
     content = re.sub(r'دليل:\s*(https?://\S+)', make_proof_link_clickable, content)
-    # Pattern للروابط المباشرة بعد 🔗
+    # Pattern for direct links after 🔗
     content = re.sub(r'🔗\s*(https?://\S+)', make_proof_link_clickable, content)
     
+    # Display section with proper structure
     st.markdown(f"""
     <div class="report-section">
         <div class="report-title">{title}</div>
