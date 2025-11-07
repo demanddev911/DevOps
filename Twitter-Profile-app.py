@@ -32,7 +32,7 @@ import re
 # PAGE CONFIGURATION
 # ============================================================
 st.set_page_config(
-    page_title="X Analytics Suite",
+    page_title="Reputation Agent",
     page_icon="✕",
     layout="wide",
     initial_sidebar_state="collapsed"
