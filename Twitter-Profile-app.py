@@ -1448,8 +1448,17 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         url = match.group(1)
         return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #93c5fd; padding-bottom: 2px; transition: all 0.2s; display: inline-block; margin: 0 4px;">🔗 رابط الإثبات</a>'
     
+    # تحويل الروابط بصيغة markdown [text](url)
+    def make_markdown_link_clickable(match):
+        link_text = match.group(1)
+        url = match.group(2)
+        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #93c5fd; padding-bottom: 2px; transition: all 0.2s; display: inline-block; margin: 0 4px;">🔗 {link_text}</a>'
+    
     # Pattern للروابط داخل [الإثبات: ...]
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
+    
+    # Pattern للروابط بصيغة markdown [text](url)
+    content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link_clickable, content)
     
     # Remove any remaining ### or ## headings and convert to strong tags
     content = re.sub(r'<br>\s*###\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;">\1</div>', content)
@@ -1471,6 +1480,78 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     
     # Clean up multiple <br> tags
     content = re.sub(r'(<br>\s*){3,}', r'<br><br>', content)
+    
+    # Convert markdown tables to HTML tables for better rendering
+    def convert_markdown_table(text):
+        lines = text.split('<br>')
+        table_lines = []
+        in_table = False
+        table_content = []
+        
+        for line in lines:
+            line = line.strip()
+            if '|' in line and line.count('|') >= 2:
+                if not in_table:
+                    in_table = True
+                    table_content = []
+                table_content.append(line)
+            else:
+                if in_table:
+                    # Process the table
+                    html_table = process_table(table_content)
+                    table_lines.append(html_table)
+                    in_table = False
+                    table_content = []
+                table_lines.append(line)
+        
+        # Handle table at end
+        if in_table and table_content:
+            html_table = process_table(table_content)
+            table_lines.append(html_table)
+        
+        return '<br>'.join(table_lines)
+    
+    def process_table(table_lines):
+        if len(table_lines) < 2:
+            return '<br>'.join(table_lines)
+        
+        # Extract rows
+        rows = []
+        for line in table_lines:
+            if '---' in line or '|-' in line:  # Skip separator line
+                continue
+            cells = [cell.strip() for cell in line.split('|')]
+            cells = [c for c in cells if c]  # Remove empty cells
+            if cells:
+                rows.append(cells)
+        
+        if not rows:
+            return ''
+        
+        # Build HTML table
+        html = '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; direction: rtl; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;">'
+        
+        # Header row
+        html += '<thead><tr>'
+        for cell in rows[0]:
+            html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; font-weight: 700; text-align: right; border: none;">{cell}</th>'
+        html += '</tr></thead>'
+        
+        # Body rows
+        if len(rows) > 1:
+            html += '<tbody>'
+            for i, row in enumerate(rows[1:]):
+                bg = '#f8fafc' if i % 2 == 0 else 'white'
+                html += f'<tr style="background: {bg};">'
+                for cell in row:
+                    html += f'<td style="padding: 16px; border: 1px solid #e2e8f0; text-align: right; line-height: 1.8; vertical-align: top;">{cell}</td>'
+                html += '</tr>'
+            html += '</tbody>'
+        
+        html += '</table>'
+        return html
+    
+    content = convert_markdown_table(content)
     
     # Different section styles based on type
     if section_type == "executive_summary":
