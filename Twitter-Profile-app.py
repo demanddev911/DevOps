@@ -121,18 +121,18 @@ st.markdown("""
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background: #f8f9ff;
-        border-color: #667eea;
-        color: #667eea;
+        background: #E3F2FD;
+        border-color: #1976D2;
+        color: #1976D2;
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
     }
     
     .stTabs [aria-selected="true"] {
-        background: #667eea !important;
+        background: #1976D2 !important;
         color: white !important;
-        border-color: #667eea !important;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35) !important;
+        border-color: #1976D2 !important;
+        box-shadow: 0 6px 20px rgba(25, 118, 210, 0.35) !important;
         font-weight: 700;
         transform: translateY(-1px);
     }
@@ -158,7 +158,7 @@ st.markdown("""
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
         opacity: 0;
         transition: opacity 0.3s ease;
     }
@@ -166,7 +166,7 @@ st.markdown("""
     div[data-testid="metric-container"]:hover {
         transform: translateY(-6px);
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-        border-color: #667eea;
+        border-color: #1976D2;
     }
     
     div[data-testid="metric-container"]:hover::before {
@@ -176,7 +176,7 @@ st.markdown("""
     div[data-testid="stMetricValue"] {
         font-size: 2.4rem;
         font-weight: 900;
-        color: #667eea;
+        color: #1976D2;
         margin-bottom: 0.5rem;
         line-height: 1.2;
     }
@@ -195,10 +195,10 @@ st.markdown("""
     .section-header {
         font-size: 1.4rem;
         font-weight: 800;
-        color: #1a202c;
+        color: #212121;
         margin: 3rem 0 1.75rem 0;
         padding-bottom: 1.25rem;
-        border-bottom: 3px solid #667eea;
+        border-bottom: 3px solid #1976D2;
         position: relative;
     }
     
@@ -209,21 +209,21 @@ st.markdown("""
         left: 0;
         width: 80px;
         height: 3px;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
     }
     
     /* ============================================================
        BUTTONS
     ============================================================ */
     .stButton button {
-        background: #667eea;
+        background: #1976D2;
         color: white;
         border: none;
         padding: 0.85rem 2rem;
         border-radius: 50px;
         font-weight: 700;
         font-size: 0.9rem;
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.35);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: 0.03em;
         cursor: pointer;
@@ -232,8 +232,8 @@ st.markdown("""
     
     .stButton button:hover {
         transform: translateY(-3px);
-        box-shadow: 0 16px 40px rgba(102, 126, 234, 0.45);
-        background: #564ba2;
+        box-shadow: 0 16px 40px rgba(25, 118, 210, 0.45);
+        background: #1565C0;
     }
     
     .stButton button:active {
@@ -309,14 +309,14 @@ st.markdown("""
        REPORT SECTIONS - ARABIC CONTENT
     ============================================================ */
     .report-section {
-        background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #FAFAFA 100%);
         border-radius: 20px;
         padding: 2.5rem;
         margin-bottom: 2rem;
         direction: rtl;
         text-align: right;
         font-family: 'Cairo', sans-serif;
-        border-right: 5px solid #667eea;
+        border-right: 5px solid #1976D2;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
@@ -330,42 +330,42 @@ st.markdown("""
         right: 0;
         width: 4px;
         height: 100%;
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(180deg, #1976D2 0%, #1565C0 100%);
         opacity: 0.3;
     }
     
     .report-section:hover {
         transform: translateX(6px);
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
-        border-right-color: #564ba2;
+        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.25);
+        border-right-color: #1565C0;
     }
     
     .report-title {
         font-size: 1.5rem;
         font-weight: 900;
-        color: #1a202c;
+        color: #212121;
         margin-bottom: 1.5rem;
         font-family: 'Cairo', sans-serif;
         padding-bottom: 1rem;
-        border-bottom: 2px solid #e0e0e0;
+        border-bottom: 2px solid #E0E0E0;
     }
     
     .report-content {
         font-size: 1.05rem;
         line-height: 2.2;
-        color: #2d3748;
+        color: #212121;
         font-family: 'Cairo', sans-serif;
         text-align: justify;
     }
     
     .report-content a {
-        color: #667eea;
+        color: #1976D2;
         text-decoration: none;
         font-weight: 700;
-        border-bottom: 2px solid #667eea;
+        border-bottom: 2px solid #1976D2;
         padding: 2px 6px;
         border-radius: 4px;
-        background: rgba(102, 126, 234, 0.08);
+        background: rgba(25, 118, 210, 0.08);
         transition: all 0.3s ease;
         display: inline-block;
         margin: 0 4px;
@@ -373,26 +373,26 @@ st.markdown("""
     
     .report-content a:hover {
         color: white;
-        background: #667eea;
-        border-bottom-color: #667eea;
+        background: #1976D2;
+        border-bottom-color: #1976D2;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
     }
     
     /* ============================================================
        FILE UPLOADER
     ============================================================ */
     [data-testid="stFileUploader"] {
-        background: #f8f9fa;
-        border: 3px dashed #667eea;
+        background: #FAFAFA;
+        border: 3px dashed #1976D2;
         border-radius: 20px;
         padding: 2.5rem;
         transition: all 0.3s ease;
     }
     
     [data-testid="stFileUploader"]:hover {
-        background: #f0f2ff;
-        border-color: #564ba2;
+        background: #E3F2FD;
+        border-color: #1565C0;
     }
     
     /* ============================================================
@@ -410,9 +410,9 @@ st.markdown("""
        PROGRESS BAR
     ============================================================ */
     .stProgress > div > div {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
     }
     
     /* ============================================================
@@ -429,13 +429,13 @@ st.markdown("""
     }
     
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(180deg, #1976D2 0%, #1565C0 100%);
         border-radius: 10px;
         border: 2px solid #f1f3f5;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #564ba2 0%, #667eea 100%);
+        background: linear-gradient(180deg, #1565C0 0%, #1976D2 100%);
     }
     
     /* ============================================================
@@ -1120,11 +1120,11 @@ def create_line_chart(df):
             x=daily_stats['date'],
             y=daily_stats['total_engagement'],
             name='Total Engagement',
-            line=dict(color='#667eea', width=3),
+            line=dict(color='#1976D2', width=3),
             mode='lines+markers',
             fill='tozeroy',
-            fillcolor='rgba(102, 126, 234, 0.1)',
-            marker=dict(size=6, color='#667eea')
+            fillcolor='rgba(25, 118, 210, 0.1)',
+            marker=dict(size=6, color='#1976D2')
         ))
         
         # Update layout with Muhimma styling
@@ -1156,7 +1156,7 @@ def create_line_chart(df):
     except Exception as e:
         return None
 
-def create_metric_comparison_chart(df, metric_name, metric_color='#667eea'):
+def create_metric_comparison_chart(df, metric_name, metric_color='#1976D2'):
     """Create metric comparison chart with posts count"""
     try:
         if df is None or df.empty or 'date' not in df.columns or df['date'].isna().all():
@@ -1311,6 +1311,17 @@ def create_bar_chart(df, column, title):
 # ============================================================
 @st.dialog("Extract X Data", width="large")
 def show_extraction_modal():
+    # Brand Header with Logo
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 1rem; margin: 0 0 1.5rem 0; padding: 1.5rem; background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); border-radius: 16px;'>
+        <div style='font-size: 2.5rem; line-height: 1;'>🎯</div>
+        <div>
+            <h2 style='margin: 0; padding: 0; font-size: 1.4rem; font-weight: 800; color: white;'>Reputation Agent</h2>
+            <p style='margin: 0; padding: 0; font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 500;'>AI-Powered Social Media Analytics</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### Configure Your Extraction")
     col1, col2 = st.columns(2)
     with col1:
@@ -1492,7 +1503,7 @@ def display_report_section(title: str, content: str):
         # Validate URL format
         if not url.startswith('http'):
             return match.group(0)  # Return original if invalid
-        return f'<a href="{url}" target="_blank" style="color: white; background: #667eea; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);" onmouseover="this.style.background=\'#564ba2\'; this.style.boxShadow=\'0 4px 12px rgba(102, 126, 234, 0.4)\';" onmouseout="this.style.background=\'#667eea\'; this.style.boxShadow=\'0 2px 6px rgba(102, 126, 234, 0.3)\';">🔗 دليل</a>'
+        return f'<a href="{url}" target="_blank" style="color: white; background: #1976D2; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);" onmouseover="this.style.background=\'#1565C0\'; this.style.boxShadow=\'0 4px 12px rgba(25, 118, 210, 0.4)\';" onmouseout="this.style.background=\'#1976D2\'; this.style.boxShadow=\'0 2px 6px rgba(25, 118, 210, 0.3)\';">🔗 دليل</a>'
     
     # Convert proof links with full URL display
     def make_proof_link_clickable(match):
@@ -1501,7 +1512,7 @@ def display_report_section(title: str, content: str):
             return match.group(0)
         # Shorten URL for display if too long
         display_url = url if len(url) < 50 else url[:47] + '...'
-        return f'<a href="{url}" target="_blank" style="color: white; background: #667eea; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);" onmouseover="this.style.background=\'#564ba2\'; this.style.boxShadow=\'0 4px 12px rgba(102, 126, 234, 0.4)\';" onmouseout="this.style.background=\'#667eea\'; this.style.boxShadow=\'0 2px 6px rgba(102, 126, 234, 0.3)\';">🔗 {display_url}</a>'
+        return f'<a href="{url}" target="_blank" style="color: white; background: #1976D2; text-decoration: none; font-weight: 700; padding: 4px 12px; border-radius: 6px; transition: all 0.3s; display: inline-block; margin: 2px 4px; box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);" onmouseover="this.style.background=\'#1565C0\'; this.style.boxShadow=\'0 4px 12px rgba(25, 118, 210, 0.4)\';" onmouseout="this.style.background=\'#1976D2\'; this.style.boxShadow=\'0 2px 6px rgba(25, 118, 210, 0.3)\';">🔗 {display_url}</a>'
     
     # Pattern for links inside [الإثبات: ...]
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
@@ -2030,7 +2041,7 @@ def dashboard_page():
             else:
                 st.markdown("""
                 <div style="text-align: center;">
-                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; margin: 0 auto; border: 3px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; margin: 0 auto; border: 3px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                         👤
                     </div>
                 </div>
@@ -2055,7 +2066,7 @@ def dashboard_page():
         with stats_col2:
             st.markdown(f"""
             <div style="text-align: center;">
-                <div style="font-size: 1.8rem; font-weight: 700; color: #667eea;">{profile['Following Count']:,}</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #1976D2;">{profile['Following Count']:,}</div>
                 <div style="color: #888; font-size: 0.85rem;">Following</div>
             </div>
             """, unsafe_allow_html=True)
@@ -2133,7 +2144,7 @@ def dashboard_page():
             labels=['Original Posts', 'Replies', 'Comments Received'],
             values=[posts_count, replies_count, comments_count],
             hole=0.4,
-            marker=dict(colors=['#ff6b6b', '#667eea', '#00cc88']),
+            marker=dict(colors=['#ff6b6b', '#1976D2', '#4CAF50']),
             textinfo='label+percent',
             textposition='auto',
             hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
@@ -2294,14 +2305,14 @@ def dashboard_page():
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**💬 Posts vs Replies**")
-        fig_replies = create_metric_comparison_chart(df_tweets, 'Replies', '#667eea')
+        fig_replies = create_metric_comparison_chart(df_tweets, 'Replies', '#1976D2')
         if fig_replies:
             st.plotly_chart(fig_replies, use_container_width=True)
             total_replies = df_tweets['replies'].sum()
             avg_replies = df_tweets['replies'].mean()
             best_post_replies = df_tweets['replies'].max()
             st.markdown(f"""
-            <div style="background: #f3e5f5; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #667eea; margin-top: 0.5rem;">
+            <div style="background: #E3F2FD; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #1976D2; margin-top: 0.5rem;">
                 <p style="margin: 0; color: #4a148c; font-size: 0.85rem;">
                     💬 <strong>{total_replies:,} total replies</strong> | Avg: {avg_replies:.0f} per post | Best: {best_post_replies:,}<br>
                     {"🎯 Great conversation starter!" if avg_replies > 5 else "💡 Try asking questions to boost replies!"}
@@ -2646,8 +2657,8 @@ def main():
         st.markdown("""
         <style>
         [data-testid="column"]:nth-child(2) button {
-            background: linear-gradient(135deg, #667eea 0%, #564ba2 100%) !important;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3) !important;
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+            box-shadow: 0 8px 20px rgba(25, 118, 210, 0.3) !important;
         }
         [data-testid="column"]:nth-child(2) button:hover {
             box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
@@ -2662,7 +2673,7 @@ def main():
             <div style='display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem 0; padding: 0;'>
                 <div style='font-size: 2.5rem; line-height: 1;'>🎯</div>
                 <div>
-                    <h3 style='margin: 0; padding: 0; font-size: 1.5rem; font-weight: 800; color: #1a202c;'>Reputation Agent</h3>
+                    <h3 style='margin: 0; padding: 0; font-size: 1.5rem; font-weight: 800; color: #212121;'>Reputation Agent</h3>
                     <p style='margin: 0; padding: 0; font-size: 0.85rem; color: #888; font-weight: 500;'>AI-Powered Social Media Analytics</p>
                 </div>
             </div>
@@ -2698,7 +2709,7 @@ def main():
                 
                 # Header for Detailed Report
                 st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2.5rem; border-radius: 24px; margin-bottom: 2.5rem; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);">
+                <div style="background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); padding: 2.5rem; border-radius: 24px; margin-bottom: 2.5rem; box-shadow: 0 10px 40px rgba(25, 118, 210, 0.3);">
                     <h1 style="color: white; margin: 0; font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">🎯 تقرير إدارة السمعة الشامل</h1>
                     <h2 style="color: rgba(255,255,255,0.95); margin: 0; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">Reputation Management Report</h2>
                     <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 1rem; line-height: 1.8;">
