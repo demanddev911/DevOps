@@ -1437,7 +1437,7 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
 def convert_table_to_html(table_rows, border_color="#3b82f6"):
-    """Convert markdown table rows to beautiful HTML table"""
+    """Convert markdown table rows to simple, light HTML table"""
     if not table_rows or len(table_rows) < 1:
         return ""
     
@@ -1452,33 +1452,27 @@ def convert_table_to_html(table_rows, border_color="#3b82f6"):
     if not rows:
         return ""
     
-    # Build HTML table with clean design
-    html = '<div style="margin: 30px 0; overflow-x: auto; direction: rtl;">'
-    html += '<table style="width: 100%; border-collapse: separate; border-spacing: 0; direction: rtl; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">'
+    # Build simple, light HTML table
+    html = '<div style="margin: 25px 0; overflow-x: auto; direction: rtl;">'
+    html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">'
     
-    # Header row - solid color, no gradient
+    # Simple header row
     html += '<thead><tr>'
     for i, cell in enumerate(rows[0]):
-        # Alternate colors for header
         if i == 0:
-            bg_color = "#10b981"  # Green for strengths
+            bg_color = "#10b981"  # Green
         else:
-            bg_color = "#ef4444"  # Red for weaknesses
-        html += f'<th style="background: {bg_color}; color: white; padding: 18px 20px; font-weight: 700; text-align: right; font-size: 1.1rem; border: none; font-family: Cairo, sans-serif;">{cell}</th>'
+            bg_color = "#ef4444"  # Red
+        html += f'<th style="background: {bg_color}; color: white; padding: 14px 16px; font-weight: 600; text-align: right; font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; font-family: Cairo, sans-serif;">{cell}</th>'
     html += '</tr></thead>'
     
-    # Body rows
+    # Simple body rows
     if len(rows) > 1:
         html += '<tbody>'
         for i, row in enumerate(rows[1:]):
-            html += '<tr style="border-bottom: 1px solid #e5e7eb;">'
+            html += '<tr>'
             for j, cell in enumerate(row):
-                # Light background for alternating columns
-                if j == 0:
-                    bg = '#f0fdf4'  # Light green
-                else:
-                    bg = '#fef2f2'  # Light red
-                html += f'<td style="padding: 20px; background: {bg}; text-align: right; vertical-align: top; line-height: 1.9; font-size: 1.0625rem; border-right: 1px solid #e5e7eb; font-family: Cairo, sans-serif; direction: rtl;">{cell}</td>'
+                html += f'<td style="padding: 16px; background: white; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; font-family: Cairo, sans-serif; direction: rtl; color: #374151;">{cell}</td>'
             html += '</tr>'
         html += '</tbody>'
     
@@ -1513,32 +1507,22 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
     
-    # Section colors - solid colors, no gradients
+    # Section colors - light and simple
     if section_type == "executive_summary":
         icon = "📋"
-        border_color = "#3b82f6"
-        bg_color = "#eff6ff"
-        header_bg = "#3b82f6"
+        border_color = "#60a5fa"
     elif section_type == "pros_cons":
         icon = "⚖️"
-        border_color = "#8b5cf6"
-        bg_color = "#f5f3ff"
-        header_bg = "#8b5cf6"
+        border_color = "#a78bfa"
     elif section_type == "complaints":
         icon = "💬"
-        border_color = "#ef4444"
-        bg_color = "#fef2f2"
-        header_bg = "#ef4444"
+        border_color = "#f87171"
     elif section_type == "insights":
         icon = "💡"
-        border_color = "#10b981"
-        bg_color = "#ecfdf5"
-        header_bg = "#10b981"
+        border_color = "#34d399"
     else:
         icon = "📊"
-        border_color = "#3b82f6"
-        bg_color = "#f8fafc"
-        header_bg = "#3b82f6"
+        border_color = "#60a5fa"
     
     # Remove markdown formatting
     content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
@@ -1584,32 +1568,25 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     st.markdown(f"""
     <style>
         .evidence-link {{
-            color: #fff;
-            background: #3b82f6;
+            color: #2563eb;
             text-decoration: none;
             font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 6px;
-            display: inline-block;
-            margin: 3px 5px;
-            transition: all 0.2s;
-            font-size: 0.9375rem;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+            transition: color 0.2s;
+            font-size: 1rem;
         }}
         .evidence-link:hover {{
-            background: #2563eb;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+            color: #1d4ed8;
+            text-decoration: underline;
         }}
         .report-content p {{
-            margin-bottom: 20px;
-            line-height: 2;
+            margin-bottom: 18px;
+            line-height: 1.9;
             direction: rtl;
             text-align: right;
         }}
         .report-content strong {{
             font-weight: 700;
-            color: #0f172a;
+            color: #1f2937;
         }}
         .report-content ul, .report-content ol {{
             direction: rtl;
@@ -1619,44 +1596,36 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         .report-content li {{
             direction: rtl;
             text-align: right;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }}
     </style>
     
     <div class="report-section" style="
         direction: rtl;
         background: white;
-        padding: 40px;
-        border-radius: 16px;
-        margin-bottom: 35px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 35px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         border: 1px solid #e5e7eb;
     ">
-        <div style="
-            background: {header_bg};
-            color: white;
-            padding: 20px 25px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            text-align: right;
+        <h2 style="
+            color: {border_color};
+            margin: 0 0 25px 0;
+            font-weight: 700;
+            font-size: 1.5rem;
+            font-family: 'Cairo', sans-serif;
             direction: rtl;
-        ">
-            <h2 style="
-                color: white;
-                margin: 0;
-                font-weight: 800;
-                font-size: 1.75rem;
-                font-family: 'Cairo', sans-serif;
-            ">{icon} {title}</h2>
-        </div>
+            text-align: right;
+            padding-bottom: 12px;
+            border-bottom: 2px solid {border_color};
+        ">{icon} {title}</h2>
         <div class="report-content" style="
-            background: {bg_color};
-            padding: 35px;
-            border-radius: 12px;
-            border-right: 5px solid {border_color};
-            line-height: 2;
-            font-size: 1.125rem;
-            color: #1f2937;
+            background: white;
+            padding: 0;
+            line-height: 1.9;
+            font-size: 1.0625rem;
+            color: #374151;
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
             direction: rtl;
             text-align: right;
@@ -1732,51 +1701,54 @@ def ai_detailed_report_page():
         default_start_date = datetime.now().date()
         default_end_date = datetime.now().date()
     
-    # Modern Header - Solid Color
+    # Simple Light Header
     current_time = datetime.now().strftime("%d %B %Y - %H:%M")
     st.markdown(f"""
     <div style="
         direction: rtl;
-        background: #1e40af;
-        color: white;
-        padding: 50px 40px;
-        border-radius: 16px;
+        background: white;
+        padding: 35px 30px;
+        border-radius: 12px;
         text-align: center;
-        margin-bottom: 35px;
-        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        margin-bottom: 30px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         font-family: 'Cairo', sans-serif;
-        border: 3px solid #3b82f6;
+        border: 2px solid #e5e7eb;
     ">
         <h1 style="
-            font-size: 2.5rem; 
-            margin: 0 0 20px 0; 
-            font-weight: 800;
-            line-height: 1.3;
+            font-size: 2rem; 
+            margin: 0 0 15px 0; 
+            font-weight: 700;
+            line-height: 1.4;
             direction: rtl;
+            color: #1f2937;
         ">📊 تقرير التحليل التفصيلي</h1>
         <h2 style="
-            font-size: 1.625rem; 
-            margin: 15px 0; 
-            font-weight: 700;
+            font-size: 1.375rem; 
+            margin: 12px 0; 
+            font-weight: 600;
             direction: rtl;
+            color: #374151;
         ">حساب تويتر: @{username}</h2>
         <div style="
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 2px solid rgba(255, 255, 255, 0.3);
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
             direction: rtl;
         ">
             <p style="
-                font-size: 1.0625rem; 
-                margin: 10px 0;
+                font-size: 1rem; 
+                margin: 8px 0;
                 font-weight: 500;
                 direction: rtl;
+                color: #6b7280;
             ">📅 تاريخ التحليل: {current_time}</p>
             <p style="
-                font-size: 1rem; 
-                margin: 10px 0;
+                font-size: 0.9375rem; 
+                margin: 8px 0;
                 font-weight: 500;
                 direction: rtl;
+                color: #6b7280;
             ">📈 حجم العينة: {len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
         </div>
     </div>
