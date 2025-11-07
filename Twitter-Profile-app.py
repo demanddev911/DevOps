@@ -219,22 +219,22 @@ st.markdown("""
     .stButton button {
         background: #00cc88;
         color: white;
-        border: none;
+        border: none !important;
         padding: 0.85rem 2rem;
         border-radius: 50px;
         font-weight: 700;
         font-size: 0.9rem;
-        box-shadow: none;
+        box-shadow: none !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: 0.03em;
         cursor: pointer;
-        border: 2px solid transparent;
     }
     
     .stButton button:hover {
         transform: translateY(-2px);
-        box-shadow: none;
+        box-shadow: none !important;
         background: #00b377;
+        border: none !important;
     }
     
     .stButton button:active {
@@ -246,12 +246,14 @@ st.markdown("""
     button[data-testid="baseButton-primary"] {
         background: #1976d2 !important;
         box-shadow: none !important;
+        border: none !important;
     }
     
     .stButton button[kind="primary"]:hover,
     button[data-testid="baseButton-primary"]:hover {
         background: #1565c0 !important;
         box-shadow: none !important;
+        border: none !important;
     }
     
     /* Secondary Buttons - Red */
@@ -259,12 +261,14 @@ st.markdown("""
     button[data-testid="baseButton-secondary"] {
         background: #ff6b6b !important;
         box-shadow: none !important;
+        border: none !important;
     }
     
     .stButton button[kind="secondary"]:hover,
     button[data-testid="baseButton-secondary"]:hover {
         background: #e85555 !important;
         box-shadow: none !important;
+        border: none !important;
     }
     
     /* Button container spacing */
@@ -1612,7 +1616,7 @@ def generate_ai_section(gemini: GeminiAnalyzer, section_name: str, prompt: str, 
 
 def display_report_section(title: str, content: str, section_id: str):
     """
-    Display collapsible accordion report section with clickable hyperlinks
+    Display collapsible accordion report section with clickable hyperlinks using st.expander
     
     Args:
         title: Section title (Arabic)
@@ -1620,10 +1624,6 @@ def display_report_section(title: str, content: str, section_id: str):
         section_id: Unique identifier for the accordion section
     """
     import re
-    import hashlib
-    
-    # Generate unique ID for this section
-    unique_id = hashlib.md5(f"{section_id}_{title}".encode()).hexdigest()[:8]
     
     # Convert evidence links to clickable hyperlinks
     def make_link_clickable(match):
@@ -1649,48 +1649,23 @@ def display_report_section(title: str, content: str, section_id: str):
     summary = content_parts[0] if len(content_parts) > 0 else content
     detailed = content_parts[1] if len(content_parts) > 1 else content
     
-    # Display accordion card
-    st.markdown(f"""
-    <div class="accordion-card">
-        <div class="accordion-header" onclick="toggleAccordion('{unique_id}')">
-            <div class="accordion-header-content">
-                <div class="accordion-icon"></div>
-                <div class="accordion-title-group">
-                    <h3 class="accordion-title">{title}</h3>
-                    <p class="accordion-subtitle">انقر للتوسيع وعرض التحليل التفصيلي</p>
-                </div>
-            </div>
-            <div class="accordion-arrow" id="arrow_{unique_id}">▼</div>
+    # Use Streamlit expander (native and working)
+    with st.expander(f"🔵 {title}", expanded=False):
+        # Summary box
+        st.markdown(f"""
+        <div class="selected-answer-box">
+            <div class="selected-answer-title">✅ الملخص السريع</div>
+            <div class="selected-answer-text">{summary[:200]}...</div>
         </div>
-        <div class="accordion-body" id="body_{unique_id}">
-            <div class="accordion-content">
-                <div class="selected-answer-box">
-                    <div class="selected-answer-title">✅ الملخص السريع</div>
-                    <div class="selected-answer-text">{summary[:200]}...</div>
-                </div>
-                <div class="reasoning-box">
-                    <div class="reasoning-title">🧠 التحليل التفصيلي</div>
-                    <div class="reasoning-content">{detailed}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-    function toggleAccordion(id) {{
-        const body = document.getElementById('body_' + id);
-        const arrow = document.getElementById('arrow_' + id);
+        """, unsafe_allow_html=True)
         
-        if (body.classList.contains('expanded')) {{
-            body.classList.remove('expanded');
-            arrow.classList.remove('expanded');
-        }} else {{
-            body.classList.add('expanded');
-            arrow.classList.add('expanded');
-        }}
-    }}
-    </script>
-    """, unsafe_allow_html=True)
+        # Detailed analysis box
+        st.markdown(f"""
+        <div class="reasoning-box">
+            <div class="reasoning-title">🧠 التحليل التفصيلي</div>
+            <div class="reasoning-content">{detailed}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 def extract_tweet_urls_for_evidence(df_tweets, sample_size=200):
     """استخراج جميع التغريدات مع روابطها (بدون فلترة)"""
