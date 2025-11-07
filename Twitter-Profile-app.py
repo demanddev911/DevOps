@@ -489,13 +489,13 @@ st.markdown("""
     }
     
     .reasoning-box {
-        background: #FFFFFF;
-        border-radius: 8px;
-        padding: 1.75rem;
+        background: #FAFBFC;
+        border-radius: 6px;
+        padding: 1.25rem 1.5rem;
         border: 1px solid #E5E7EB;
         direction: rtl !important;
         text-align: right !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     }
     
     .reasoning-box * {
@@ -503,11 +503,11 @@ st.markdown("""
     }
     
     .reasoning-title {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #6B7280;
-        margin-bottom: 1.25rem;
-        font-family: 'Cairo', sans-serif;
+        margin-bottom: 1rem;
+        font-family: 'Cairo', sans-serif !important;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         display: flex;
@@ -515,15 +515,15 @@ st.markdown("""
         gap: 0.5rem;
         direction: rtl;
         text-align: right;
-        border-bottom: 1px solid #F3F4F6;
-        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #E5E7EB;
+        padding-bottom: 0.5rem;
     }
     
     .reasoning-content {
-        font-size: 1rem;
-        line-height: 2;
+        font-size: 0.95rem;
+        line-height: 1.8;
         color: #374151;
-        font-family: 'Cairo', 'Inter', sans-serif;
+        font-family: 'Cairo', sans-serif !important;
         text-align: right !important;
         direction: rtl !important;
     }
@@ -531,28 +531,31 @@ st.markdown("""
     .reasoning-content *:not(a) {
         direction: rtl !important;
         text-align: right !important;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .reasoning-content div,
     .reasoning-content span {
         direction: rtl !important;
         text-align: right !important;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     .reasoning-content a {
         color: #1565C0;
         text-decoration: none;
         font-weight: 600;
-        padding: 6px 14px;
-        border-radius: 6px;
+        padding: 5px 12px;
+        border-radius: 5px;
         background: #F8F9FA;
         transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin: 3px 6px;
+        gap: 5px;
+        margin: 2px 5px;
         border: 1px solid #DEE2E6;
-        font-size: 0.875rem;
+        font-size: 0.85rem;
+        font-family: 'Cairo', sans-serif !important;
         direction: ltr;
         white-space: nowrap;
         vertical-align: middle;
@@ -567,7 +570,7 @@ st.markdown("""
     
     .reasoning-content a::before {
         content: '🔗';
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         opacity: 0.7;
     }
     
@@ -576,17 +579,17 @@ st.markdown("""
         color: #1565C0 !important;
         text-decoration: none !important;
         font-weight: 600 !important;
-        padding: 6px 14px !important;
-        border-radius: 6px !important;
+        padding: 5px 12px !important;
+        border-radius: 5px !important;
         background: #F8F9FA !important;
         transition: all 0.2s ease !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 6px !important;
-        margin: 3px 6px !important;
+        gap: 5px !important;
+        margin: 2px 5px !important;
         border: 1px solid #DEE2E6 !important;
-        font-size: 0.875rem !important;
-        font-family: 'Inter', 'Cairo', sans-serif !important;
+        font-size: 0.85rem !important;
+        font-family: 'Cairo', sans-serif !important;
         direction: ltr !important;
         white-space: nowrap !important;
         vertical-align: middle !important;
@@ -594,7 +597,7 @@ st.markdown("""
     
     .evidence-link::before {
         content: '🔗' !important;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
         opacity: 0.7 !important;
     }
     
@@ -612,11 +615,13 @@ st.markdown("""
     /* Evidence links in lists */
     .reasoning-content ul li,
     .reasoning-content ol li {
-        margin: 10px 0;
-        line-height: 2;
+        margin: 0.5rem 0;
+        line-height: 1.8;
         padding-right: 8px;
         direction: rtl !important;
         text-align: right !important;
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 0.95rem;
     }
     
     .reasoning-content ul,
@@ -625,91 +630,139 @@ st.markdown("""
         text-align: right !important;
         padding-right: 20px !important;
         padding-left: 0 !important;
+        margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
     }
     
     /* Ensure proper spacing around evidence links */
     .reasoning-content br + a.evidence-link,
     .reasoning-content p + a.evidence-link {
         display: inline-flex !important;
-        margin-top: 4px !important;
+        margin-top: 3px !important;
+    }
+    
+    /* Remove extra spacing between elements */
+    .reasoning-content > *:first-child {
+        margin-top: 0 !important;
+    }
+    
+    .reasoning-content > *:last-child {
+        margin-bottom: 0 !important;
     }
     
     /* Better paragraph spacing with Arabic text */
     .reasoning-content p {
-        margin-bottom: 1rem;
-        line-height: 2;
+        margin-bottom: 0.75rem;
+        line-height: 1.8;
         direction: rtl !important;
         text-align: right !important;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        font-family: 'Cairo', sans-serif !important;
     }
     
     /* Headlines and emphasis in Arabic */
     .reasoning-content strong,
     .reasoning-content b {
         color: #111827;
-        font-weight: 800;
-        font-size: 1.1rem;
+        font-weight: 700;
+        font-size: 1rem;
         direction: rtl;
+        font-family: 'Cairo', sans-serif !important;
     }
     
-    .reasoning-content h1,
-    .reasoning-content h2,
-    .reasoning-content h3,
-    .reasoning-content h4 {
-        direction: rtl;
-        text-align: right;
-        margin: 1.5rem 0 0.8rem 0;
-        color: #212121;
-        font-family: 'Cairo', sans-serif;
-        font-weight: 700;
+    .reasoning-content h1:first-child {
+        margin-top: 0;
+    }
+    
+    .reasoning-content h2:first-child {
+        margin-top: 0;
+    }
+    
+    .reasoning-content h3:first-child {
+        margin-top: 0;
     }
     
     /* Clean list styling */
     .reasoning-content ul {
         list-style-position: inside;
-        padding-right: 0;
+        padding-right: 15px;
         direction: rtl;
+        margin: 0.5rem 0;
     }
     
     .reasoning-content ol {
         list-style-position: inside;
-        padding-right: 0;
+        padding-right: 15px;
         direction: rtl;
+        margin: 0.5rem 0;
     }
     
-    /* Hierarchical Typography - Much Bigger and Bolder */
+    /* Hierarchical Typography - Consistent and Clean */
     .reasoning-content h1 {
-        font-size: 2rem;
-        font-weight: 900;
+        font-size: 1.75rem;
+        font-weight: 800;
         color: #111827;
-        margin: 2rem 0 1rem 0;
-        line-height: 1.3;
-        font-family: 'Cairo', sans-serif;
+        margin: 1.5rem 0 0.75rem 0;
+        line-height: 1.4;
+        font-family: 'Cairo', sans-serif !important;
         direction: rtl;
         text-align: right;
         border-bottom: 2px solid #E5E7EB;
-        padding-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
     }
     
     .reasoning-content h2 {
-        font-size: 1.5rem;
-        font-weight: 800;
+        font-size: 1.25rem;
+        font-weight: 700;
         color: #1F2937;
-        margin: 1.5rem 0 0.75rem 0;
-        line-height: 1.4;
-        font-family: 'Cairo', sans-serif;
+        margin: 1.25rem 0 0.5rem 0;
+        line-height: 1.5;
+        font-family: 'Cairo', sans-serif !important;
         direction: rtl;
         text-align: right;
     }
     
     .reasoning-content h3 {
-        font-size: 1.15rem;
-        font-weight: 700;
+        font-size: 1.1rem;
+        font-weight: 600;
         color: #374151;
-        margin: 1.25rem 0 0.5rem 0;
-        font-family: 'Cairo', sans-serif;
+        margin: 1rem 0 0.4rem 0;
+        font-family: 'Cairo', sans-serif !important;
         direction: rtl;
         text-align: right;
+    }
+    
+    /* ============================================================
+       STREAMLIT EXPANDER STYLING
+    ============================================================ */
+    [data-testid="stExpander"] {
+        margin-bottom: 0.75rem !important;
+        border-radius: 8px !important;
+        border: 1px solid #E5E7EB !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    
+    [data-testid="stExpander"] details {
+        border-radius: 8px !important;
+    }
+    
+    [data-testid="stExpander"] summary {
+        padding: 0.875rem 1.25rem !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        font-family: 'Cairo', sans-serif !important;
+        background: #F9FAFB !important;
+        border-radius: 8px !important;
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    [data-testid="stExpander"] summary:hover {
+        background: #F3F4F6 !important;
+    }
+    
+    [data-testid="stExpander"] [data-testid="stExpanderContent"] {
+        padding: 1rem 1.25rem !important;
     }
     
     /* ============================================================
