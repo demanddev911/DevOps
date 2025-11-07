@@ -67,8 +67,8 @@ st.markdown("""
     }
     
     .main {
-        background: #e8e8e8;
-        padding: 1rem;
+        background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
     }
     
     .block-container {
@@ -382,48 +382,82 @@ st.markdown("""
     
     /* Detailed Report Page Enhancements */
     .main [direction="rtl"] {
-        font-family: 'Cairo', 'Inter', sans-serif;
+        font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
     
     .main table {
         width: 100%;
         border-collapse: collapse;
-        margin: 15px 0;
+        margin: 20px 0;
         direction: rtl;
         text-align: right;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        border-radius: 8px;
+        overflow: hidden;
     }
     
     .main table th {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 12px;
-        font-weight: bold;
-        border: 1px solid #ddd;
+        padding: 16px;
+        font-weight: 700;
+        border: none;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
     }
     
     .main table td {
-        padding: 12px;
-        border: 1px solid #ddd;
-        line-height: 1.6;
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        line-height: 1.8;
+        font-size: 0.9375rem;
+        color: #334155;
     }
     
     .main table tr:nth-child(even) {
         background-color: #f8fafc;
     }
     
+    .main table tr:hover {
+        background-color: #f1f5f9;
+        transition: background-color 0.2s ease;
+    }
+    
     .main ul, .main ol {
-        line-height: 1.8;
-        margin: 10px 0;
-        padding-right: 20px;
+        line-height: 2;
+        margin: 15px 0;
+        padding-right: 25px;
     }
     
     .main li {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        color: #475569;
+        font-size: 1rem;
     }
     
     .main strong {
         font-weight: 700;
-        color: #1e3a8a;
+        color: #0f172a;
+    }
+    
+    .main p {
+        line-height: 2.1;
+        margin-bottom: 18px;
+        color: #1e293b;
+        font-size: 1.125rem;
+        font-weight: 400;
+    }
+    
+    /* Better text for divs with direction rtl */
+    .main div[direction="rtl"] p,
+    .main div[style*="direction: rtl"] p {
+        font-size: 1.125rem;
+        line-height: 2.1;
+        color: #1e293b;
+        margin-bottom: 18px;
     }
     
     .main a {
@@ -431,11 +465,44 @@ st.markdown("""
         text-decoration: none;
         font-weight: 600;
         transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
     }
     
     .main a:hover {
         color: #1e40af;
-        text-decoration: underline;
+        border-bottom-color: #93c5fd;
+    }
+    
+    .main h1, .main h2, .main h3, .main h4 {
+        font-family: 'Cairo', sans-serif;
+        font-weight: 700;
+        color: #0f172a;
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+        line-height: 1.4;
+    }
+    
+    .main h1 {
+        font-size: 2rem;
+    }
+    
+    .main h2 {
+        font-size: 1.5rem;
+    }
+    
+    .main h3 {
+        font-size: 1.25rem;
+    }
+    
+    /* Better text selection */
+    ::selection {
+        background-color: #93c5fd;
+        color: #1e293b;
+    }
+    
+    ::-moz-selection {
+        background-color: #93c5fd;
+        color: #1e293b;
     }
     
     /* Date input styling */
@@ -1373,69 +1440,101 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط وتصميم حديث"""
     import re
     
+    # First, convert line breaks for processing
+    content = content.replace('\n', '<br>')
+    
     # تحويل الروابط لـ hyperlinks
     def make_link_clickable(match):
         url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: bold;">🔗 رابط الإثبات</a>'
+        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #93c5fd; padding-bottom: 2px; transition: all 0.2s; display: inline-block; margin: 0 4px;">🔗 رابط الإثبات</a>'
     
     # Pattern للروابط داخل [الإثبات: ...]
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
     
-    # Convert markdown to HTML for better formatting
-    # Handle bold text
-    content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
-    # Handle line breaks
-    content = content.replace('\n', '<br>')
+    # Remove any remaining ### or ## headings and convert to strong tags
+    content = re.sub(r'<br>\s*###\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;">\1</div>', content)
+    content = re.sub(r'<br>\s*##\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 28px 0 14px 0; padding-bottom: 10px; border-bottom: 3px solid #cbd5e1;">\1</div>', content)
+    content = re.sub(r'<br>\s*#\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 32px 0 16px 0;">\1</div>', content)
+    
+    # Remove standalone # symbols
+    content = re.sub(r'<br>\s*#+\s*<br>', r'<br>', content)
+    
+    # Convert markdown bold to HTML strong with better styling
+    content = re.sub(r'\*\*(.+?)\*\*', r'<strong style="color: #1e293b; font-weight: 700;">\1</strong>', content)
+    
+    # Handle bullet points (convert - to bullets)
+    content = re.sub(r'<br>\s*-\s+', r'<br><span style="color: #3b82f6; margin-left: 8px;">•</span> ', content)
+    
+    # Handle numbered lists with better formatting
+    content = re.sub(r'<br>\s*(\d+)\.\s+\*\*(.+?)\*\*', r'<br><div style="margin: 12px 0; padding-right: 20px;"><strong style="color: #3b82f6; font-size: 1.05rem; margin-left: 8px;">\1.</strong> <strong style="color: #1e293b; font-weight: 700;">\2</strong></div>', content)
+    content = re.sub(r'<br>\s*(\d+)\.\s+', r'<br><div style="margin: 10px 0; padding-right: 20px;"><strong style="color: #3b82f6; margin-left: 8px;">\1.</strong> ', content)
+    
+    # Clean up multiple <br> tags
+    content = re.sub(r'(<br>\s*){3,}', r'<br><br>', content)
     
     # Different section styles based on type
     if section_type == "executive_summary":
         icon = "📋"
         border_color = "#3b82f6"
-        bg_color = "#eff6ff"
+        bg_color = "#f0f9ff"
+        text_color = "#1e293b"
     elif section_type == "pros_cons":
         icon = "⚖️"
         border_color = "#8b5cf6"
-        bg_color = "#f5f3ff"
+        bg_color = "#faf5ff"
+        text_color = "#1e293b"
     elif section_type == "complaints":
         icon = "💬"
         border_color = "#ef4444"
         bg_color = "#fef2f2"
+        text_color = "#1e293b"
     elif section_type == "insights":
         icon = "💡"
         border_color = "#10b981"
         bg_color = "#f0fdf4"
+        text_color = "#1e293b"
     else:
         icon = "📊"
         border_color = "#3b82f6"
         bg_color = "#f8fafc"
+        text_color = "#1e293b"
     
     st.markdown(f"""
     <div style="
         direction: rtl;
         background-color: white;
-        padding: 25px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 32px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #f1f5f9;
     ">
         <h2 style="
-            color: #1e3a8a;
-            border-bottom: 3px solid {border_color};
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: #1e293b;
+            border-bottom: 4px solid {border_color};
+            padding-bottom: 14px;
+            margin-bottom: 26px;
+            font-weight: 800;
+            font-size: 1.625rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: 0.01em;
         ">{icon} {title}</h2>
         <div style="
-            background-color: {bg_color};
-            padding: 20px;
-            border-radius: 10px;
-            border-right: 4px solid {border_color};
-            line-height: 1.8;
-            font-size: 15px;
+            background: linear-gradient(to bottom, {bg_color} 0%, #ffffff 100%);
+            padding: 32px;
+            border-radius: 14px;
+            border-right: 5px solid {border_color};
+            line-height: 2.1;
+            font-size: 1.125rem;
             text-align: right;
+            color: {text_color};
+            font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+            letter-spacing: 0.015em;
+            word-spacing: 0.05em;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
         ">
             {content}
         </div>
@@ -1515,16 +1614,46 @@ def ai_detailed_report_page():
         direction: rtl;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 40px;
-        border-radius: 15px;
+        padding: 48px 40px;
+        border-radius: 20px;
         text-align: center;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        margin-bottom: 35px;
+        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        font-family: 'Cairo', sans-serif;
     ">
-        <h1 style="font-size: 32px; margin: 0 0 10px 0; font-weight: bold;">📊 تقرير التحليل التفصيلي</h1>
-        <h2 style="font-size: 20px; margin: 10px 0; font-weight: bold;">حساب تويتر: @{username}</h2>
-        <p style="font-size: 14px; opacity: 0.9;">تاريخ التحليل: {current_time}</p>
-        <p style="font-size: 13px; opacity: 0.85;">حجم العينة: {len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
+        <h1 style="
+            font-size: 2.25rem; 
+            margin: 0 0 16px 0; 
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.3;
+        ">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="
+            font-size: 1.5rem; 
+            margin: 12px 0; 
+            font-weight: 700;
+            opacity: 0.95;
+            letter-spacing: 0.02em;
+        ">حساب تويتر: @{username}</h2>
+        <div style="
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        ">
+            <p style="
+                font-size: 1rem; 
+                opacity: 0.9;
+                margin: 8px 0;
+                font-weight: 500;
+            ">📅 تاريخ التحليل: {current_time}</p>
+            <p style="
+                font-size: 0.9375rem; 
+                opacity: 0.85;
+                margin: 8px 0;
+                font-weight: 500;
+            ">📈 حجم العينة: {len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1533,17 +1662,21 @@ def ai_detailed_report_page():
     <div style="
         direction: rtl;
         background-color: white;
-        padding: 25px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 28px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #f1f5f9;
     ">
         <h2 style="
-            color: #1e3a8a;
+            color: #1e293b;
             border-bottom: 3px solid #3b82f6;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            font-weight: bold;
+            padding-bottom: 12px;
+            margin: 0 0 20px 0;
+            font-weight: 800;
+            font-size: 1.375rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: 0.01em;
         ">📅 تصفية حسب التاريخ</h2>
     </div>
     """, unsafe_allow_html=True)
@@ -1552,7 +1685,17 @@ def ai_detailed_report_page():
     col1, col2, col3 = st.columns([1, 1, 0.6])
     
     with col1:
-        st.markdown('<p style="direction: rtl; margin-bottom: 8px; color: #475569; font-weight: bold;">📆 تاريخ البداية (من)</p>', unsafe_allow_html=True)
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 10px; 
+            color: #334155; 
+            font-weight: 700;
+            font-size: 0.9375rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: 0.01em;
+        ">📆 تاريخ البداية (من)</p>
+        """, unsafe_allow_html=True)
         start_date = st.date_input(
             "تاريخ البداية",
             value=default_start_date,
@@ -1564,7 +1707,17 @@ def ai_detailed_report_page():
         )
     
     with col2:
-        st.markdown('<p style="direction: rtl; margin-bottom: 8px; color: #475569; font-weight: bold;">📆 تاريخ النهاية (إلى)</p>', unsafe_allow_html=True)
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 10px; 
+            color: #334155; 
+            font-weight: 700;
+            font-size: 0.9375rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: 0.01em;
+        ">📆 تاريخ النهاية (إلى)</p>
+        """, unsafe_allow_html=True)
         end_date = st.date_input(
             "تاريخ النهاية",
             value=default_end_date,
@@ -1576,7 +1729,7 @@ def ai_detailed_report_page():
         )
     
     with col3:
-        st.markdown('<p style="margin-bottom: 8px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
         generate_button = st.button(
             "🔍 إنشاء التقرير",
             type="primary",
@@ -1592,16 +1745,20 @@ def ai_detailed_report_page():
             st.markdown("""
             <div style="
                 direction: rtl;
-                background-color: #fef3c7;
-                border-right: 4px solid #f59e0b;
-                padding: 15px;
-                border-radius: 8px;
-                margin-top: 15px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                background: linear-gradient(to right, #fef3c7 0%, #fefce8 100%);
+                border-right: 5px solid #f59e0b;
+                padding: 18px 20px;
+                border-radius: 12px;
+                margin-top: 20px;
+                box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+                font-family: 'Cairo', sans-serif;
             ">
-                <span>⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
+                <span style="
+                    font-size: 1.0625rem;
+                    font-weight: 600;
+                    color: #92400e;
+                    letter-spacing: 0.01em;
+                ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -1612,16 +1769,20 @@ def ai_detailed_report_page():
         st.markdown(f"""
         <div style="
             direction: rtl;
-            background-color: #d1fae5;
-            border-right: 4px solid #10b981;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: linear-gradient(to right, #d1fae5 0%, #ecfdf5 100%);
+            border-right: 5px solid #10b981;
+            padding: 18px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+            font-family: 'Cairo', sans-serif;
         ">
-            <span>✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}</span>
+            <span style="
+                font-size: 1.0625rem;
+                font-weight: 600;
+                color: #065f46;
+                letter-spacing: 0.01em;
+            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}</span>
         </div>
         """, unsafe_allow_html=True)
     
