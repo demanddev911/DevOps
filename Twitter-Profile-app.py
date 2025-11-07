@@ -1430,58 +1430,37 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
         return st.session_state.ai_report_cache[section_name]
     result = mistral.analyze(prompt, max_tokens)
     if result:
-        cleaned_result = result.replace('**', '').replace('*', '').strip()
-        st.session_state.ai_report_cache[section_name] = cleaned_result
-        return cleaned_result
+        # Don't remove markdown formatting here - we'll handle it in display_report_section
+        st.session_state.ai_report_cache[section_name] = result.strip()
+        return result.strip()
     else:
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
 def display_report_section(title: str, content: str, section_type: str = "default"):
-    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط وتصميم حديث"""
+    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط وتصميم حديث محسّن"""
     import re
     
-    # First, convert line breaks for processing
+    # Step 1: Convert line breaks for processing
+    content = content.replace('\r\n', '\n').replace('\r', '\n')
     content = content.replace('\n', '<br>')
     
-    # تحويل الروابط لـ hyperlinks
+    # Step 2: Handle markdown links FIRST (before converting tables which might contain links)
     def make_link_clickable(match):
         url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #93c5fd; padding-bottom: 2px; transition: all 0.2s; display: inline-block; margin: 0 4px;">🔗 رابط الإثبات</a>'
+        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; padding: 4px 10px; background: #eff6ff; border-radius: 6px; transition: all 0.2s; display: inline-block; margin: 2px 4px; border-bottom: 2px solid #93c5fd;">🔗 رابط الإثبات</a>'
     
-    # تحويل الروابط بصيغة markdown [text](url)
     def make_markdown_link_clickable(match):
         link_text = match.group(1)
         url = match.group(2)
-        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #93c5fd; padding-bottom: 2px; transition: all 0.2s; display: inline-block; margin: 0 4px;">🔗 {link_text}</a>'
+        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; padding: 4px 10px; background: #eff6ff; border-radius: 6px; transition: all 0.2s; display: inline-block; margin: 2px 4px; border-bottom: 2px solid #93c5fd;">🔗 {link_text}</a>'
     
-    # Pattern للروابط داخل [الإثبات: ...]
+    # Convert [الإثبات: url] format
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
     
-    # Pattern للروابط بصيغة markdown [text](url)
+    # Convert [text](url) format - standard markdown
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link_clickable, content)
     
-    # Remove any remaining ### or ## headings and convert to strong tags
-    content = re.sub(r'<br>\s*###\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;">\1</div>', content)
-    content = re.sub(r'<br>\s*##\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 28px 0 14px 0; padding-bottom: 10px; border-bottom: 3px solid #cbd5e1;">\1</div>', content)
-    content = re.sub(r'<br>\s*#\s+(.+?)(?=<br>|$)', r'<br><div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 32px 0 16px 0;">\1</div>', content)
-    
-    # Remove standalone # symbols
-    content = re.sub(r'<br>\s*#+\s*<br>', r'<br>', content)
-    
-    # Convert markdown bold to HTML strong with better styling
-    content = re.sub(r'\*\*(.+?)\*\*', r'<strong style="color: #1e293b; font-weight: 700;">\1</strong>', content)
-    
-    # Handle bullet points (convert - to bullets)
-    content = re.sub(r'<br>\s*-\s+', r'<br><span style="color: #3b82f6; margin-left: 8px;">•</span> ', content)
-    
-    # Handle numbered lists with better formatting
-    content = re.sub(r'<br>\s*(\d+)\.\s+\*\*(.+?)\*\*', r'<br><div style="margin: 12px 0; padding-right: 20px;"><strong style="color: #3b82f6; font-size: 1.05rem; margin-left: 8px;">\1.</strong> <strong style="color: #1e293b; font-weight: 700;">\2</strong></div>', content)
-    content = re.sub(r'<br>\s*(\d+)\.\s+', r'<br><div style="margin: 10px 0; padding-right: 20px;"><strong style="color: #3b82f6; margin-left: 8px;">\1.</strong> ', content)
-    
-    # Clean up multiple <br> tags
-    content = re.sub(r'(<br>\s*){3,}', r'<br><br>', content)
-    
-    # Convert markdown tables to HTML tables for better rendering
+    # Step 3: Convert markdown tables to HTML tables
     def convert_markdown_table(text):
         lines = text.split('<br>')
         table_lines = []
@@ -1489,8 +1468,8 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         table_content = []
         
         for line in lines:
-            line = line.strip()
-            if '|' in line and line.count('|') >= 2:
+            line_stripped = line.strip()
+            if '|' in line_stripped and line_stripped.count('|') >= 2:
                 if not in_table:
                     in_table = True
                     table_content = []
@@ -1518,9 +1497,10 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         # Extract rows
         rows = []
         for line in table_lines:
-            if '---' in line or '|-' in line:  # Skip separator line
+            line_str = str(line).strip()
+            if '---' in line_str or '|-' in line_str:  # Skip separator line
                 continue
-            cells = [cell.strip() for cell in line.split('|')]
+            cells = [cell.strip() for cell in line_str.split('|')]
             cells = [c for c in cells if c]  # Remove empty cells
             if cells:
                 rows.append(cells)
@@ -1529,12 +1509,13 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             return ''
         
         # Build HTML table
-        html = '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; direction: rtl; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;">'
+        html = '<div style="margin: 25px 0; overflow-x: auto;">'
+        html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; box-shadow: 0 4px 12px rgba(0,0,0,0.12); border-radius: 12px; overflow: hidden; background: white;">'
         
         # Header row
         html += '<thead><tr>'
         for cell in rows[0]:
-            html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; font-weight: 700; text-align: right; border: none;">{cell}</th>'
+            html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 18px 16px; font-weight: 700; text-align: right; border: none; font-size: 1.05rem;">{cell}</th>'
         html += '</tr></thead>'
         
         # Body rows
@@ -1542,16 +1523,75 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             html += '<tbody>'
             for i, row in enumerate(rows[1:]):
                 bg = '#f8fafc' if i % 2 == 0 else 'white'
-                html += f'<tr style="background: {bg};">'
+                html += f'<tr style="background: {bg}; transition: background 0.2s;" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'{bg}\'">'
                 for cell in row:
-                    html += f'<td style="padding: 16px; border: 1px solid #e2e8f0; text-align: right; line-height: 1.8; vertical-align: top;">{cell}</td>'
+                    html += f'<td style="padding: 18px 16px; border: 1px solid #e2e8f0; text-align: right; line-height: 1.9; vertical-align: top; font-size: 1.0625rem;">{cell}</td>'
                 html += '</tr>'
             html += '</tbody>'
         
-        html += '</table>'
+        html += '</table></div>'
         return html
     
     content = convert_markdown_table(content)
+    
+    # Step 4: Handle markdown headings (convert ### ## # to styled divs)
+    content = re.sub(
+        r'<br>\s*###\s+(.+?)(?=<br>|$)', 
+        r'<br><div style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 28px 0 14px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: Cairo, sans-serif;">\1</div>', 
+        content
+    )
+    content = re.sub(
+        r'<br>\s*##\s+(.+?)(?=<br>|$)', 
+        r'<br><div style="font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 32px 0 16px 0; padding-bottom: 12px; border-bottom: 3px solid #cbd5e1; font-family: Cairo, sans-serif;">\1</div>', 
+        content
+    )
+    content = re.sub(
+        r'<br>\s*#\s+(.+?)(?=<br>|$)', 
+        r'<br><div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 36px 0 18px 0; font-family: Cairo, sans-serif;">\1</div>', 
+        content
+    )
+    
+    # Remove standalone # symbols
+    content = re.sub(r'<br>\s*#+\s*<br>', r'<br>', content)
+    content = re.sub(r'^\s*#+\s*<br>', r'', content)
+    
+    # Step 5: Convert markdown bold **text** to HTML
+    content = re.sub(
+        r'\*\*(.+?)\*\*', 
+        r'<strong style="color: #0f172a; font-weight: 700;">\1</strong>', 
+        content
+    )
+    
+    # Remove any remaining single * 
+    content = content.replace('*', '')
+    
+    # Step 6: Handle bullet points (convert - to styled bullets)
+    content = re.sub(
+        r'<br>\s*[-•]\s+', 
+        r'<br><div style="margin: 10px 0 10px 20px; padding-right: 20px;"><span style="color: #3b82f6; margin-left: 10px; font-weight: 700;">•</span>', 
+        content
+    )
+    
+    # Step 7: Handle numbered lists with better formatting
+    content = re.sub(
+        r'<br>\s*(\d+)\.\s+', 
+        r'<br><div style="margin: 12px 0 12px 20px; padding-right: 20px;"><strong style="color: #3b82f6; font-size: 1.05rem; margin-left: 10px;">\1.</strong> ', 
+        content
+    )
+    
+    # Step 8: Add proper paragraphs (split by double line breaks)
+    content = re.sub(r'<br>\s*<br>', r'</div><div style="margin-bottom: 16px;">', content)
+    content = '<div style="margin-bottom: 16px;">' + content + '</div>'
+    
+    # Step 9: Clean up excessive spacing
+    content = re.sub(r'(<br>\s*){3,}', r'<br><br>', content)
+    content = re.sub(r'<div style="margin-bottom: 16px;"></div>', '', content)
+    
+    # Step 10: Fix any unclosed divs from lists
+    content = content.replace('<br></div>', '</div><br>')
+    
+    # Final cleanup
+    content = content.strip()
     
     # Different section styles based on type
     if section_type == "executive_summary":
