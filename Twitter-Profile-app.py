@@ -1,21 +1,8 @@
 """
 X Analytics Suite - Professional Dashboard with AI Report
-Version: 9.0 - Major Enhancement Update
+Version: 8.2 - Optimized Performance Update
 
-New in this version:
-- ✅ Environment-based configuration (secure API key management)
-- ✅ Sentiment analysis for tweets and comments
-- ✅ Enhanced error handling and logging
-- ✅ Input validation and sanitization
-- ✅ Performance optimizations with advanced caching
-- ✅ Dark mode support
-- ✅ Network analysis visualization
-- ✅ Improved UI with loading animations
-- ✅ PDF export functionality
-- ✅ Time period comparison features
-- ✅ Better rate limit handling
-
-Previous optimizations:
+Optimizations in this version:
 - Refactored HTTP connections with connection pooling and automatic retries
 - Eliminated duplicate pagination code with generic _paginate_tweets method
 - Optimized DataFrame operations with better vectorization
@@ -29,10 +16,10 @@ Previous optimizations:
 import streamlit as st
 import json
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional
 import io
 import numpy as np
 import plotly.graph_objects as go
@@ -40,30 +27,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
-import os
-import logging
-from dotenv import load_dotenv
-from textblob import TextBlob
-import hashlib
-
-# ============================================================
-# LOGGING CONFIGURATION
-# ============================================================
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# ============================================================
-# LOAD ENVIRONMENT VARIABLES
-# ============================================================
-load_dotenv()
-logger.info("Application starting...")
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -84,10 +47,6 @@ if 'show_raw_data' not in st.session_state:
     st.session_state.show_raw_data = False
 if 'ai_report_cache' not in st.session_state:
     st.session_state.ai_report_cache = {}
-if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = False
-if 'sentiment_cache' not in st.session_state:
-    st.session_state.sentiment_cache = {}
 
 # ============================================================
 # CUSTOM CSS
@@ -424,49 +383,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# API CONFIGURATION - Loaded from Environment Variables
+# API CONFIGURATION "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
 # ============================================================
-def load_config() -> Dict[str, any]:
-    """Load configuration from environment variables with validation"""
-    config = {
-        'API_KEY': os.getenv('RAPIDAPI_KEY'),
-        'API_HOST': os.getenv('RAPIDAPI_HOST', 'twitter241.p.rapidapi.com'),
-        'MAX_COMMENT_WORKERS': int(os.getenv('MAX_COMMENT_WORKERS', '15')),
-        'CONNECTION_TIMEOUT': int(os.getenv('CONNECTION_TIMEOUT', '15')),
-        'MISTRAL_API_KEY': os.getenv('MISTRAL_API_KEY'),
-        'MISTRAL_API_URL': os.getenv('MISTRAL_API_URL', 'https://api.mistral.ai/v1/chat/completions'),
-        'MISTRAL_MODEL': os.getenv('MISTRAL_MODEL', 'mistral-large-latest'),
-        'MISTRAL_TEMPERATURE': float(os.getenv('MISTRAL_TEMPERATURE', '0.3')),
-        'MISTRAL_MAX_TOKENS': int(os.getenv('MISTRAL_MAX_TOKENS', '4000'))
-    }
-    
-    # Validate required keys
-    if not config['API_KEY']:
-        logger.error("RAPIDAPI_KEY not found in environment variables")
-        raise ValueError("❌ Missing RAPIDAPI_KEY. Please check your .env file.")
-    if not config['MISTRAL_API_KEY']:
-        logger.error("MISTRAL_API_KEY not found in environment variables")
-        raise ValueError("❌ Missing MISTRAL_API_KEY. Please check your .env file.")
-    
-    return config
+API_KEY = "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
 
-# Load configuration
-try:
-    CONFIG = load_config()
-    API_KEY = CONFIG['API_KEY']
-    API_HOST = CONFIG['API_HOST']
-    MAX_COMMENT_WORKERS = CONFIG['MAX_COMMENT_WORKERS']
-    CONNECTION_TIMEOUT = CONFIG['CONNECTION_TIMEOUT']
-    MISTRAL_API_KEY = CONFIG['MISTRAL_API_KEY']
-    MISTRAL_API_URL = CONFIG['MISTRAL_API_URL']
-    MISTRAL_MODEL = CONFIG['MISTRAL_MODEL']
-    MISTRAL_TEMPERATURE = CONFIG['MISTRAL_TEMPERATURE']
-    MISTRAL_MAX_TOKENS = CONFIG['MISTRAL_MAX_TOKENS']
-    logger.info("✓ Configuration loaded successfully")
-except Exception as e:
-    st.error(f"⚠️ Configuration Error: {str(e)}")
-    st.info("💡 Please ensure you have a .env file with all required API keys. See .env.example for reference.")
-    st.stop()
+API_HOST = "twitter241.p.rapidapi.com"
+MAX_COMMENT_WORKERS = 15
+CONNECTION_TIMEOUT = 15
+
+MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
+MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
+MISTRAL_MODEL = "mistral-large-latest"
+MISTRAL_TEMPERATURE = 0.3
+MISTRAL_MAX_TOKENS = 4000
 
 # ============================================================
 # TWITTER API CLASSES
@@ -1011,152 +940,6 @@ def prepare_dataframe_for_excel(df: pd.DataFrame) -> pd.DataFrame:
     return df_excel
 
 # ============================================================
-# INPUT VALIDATION & SANITIZATION
-# ============================================================
-def validate_username(username: str) -> Tuple[bool, str]:
-    """
-    Validate Twitter username
-    Returns: (is_valid, cleaned_username)
-    """
-    if not username:
-        return False, ""
-    
-    # Remove @ symbol if present
-    username = username.strip().lstrip('@')
-    
-    # Twitter username rules: 1-15 chars, alphanumeric and underscores only
-    if len(username) < 1 or len(username) > 15:
-        return False, ""
-    
-    if not re.match(r'^[A-Za-z0-9_]+$', username):
-        return False, ""
-    
-    logger.info(f"Username validated: {username}")
-    return True, username
-
-def sanitize_input(text: str, max_length: int = 1000) -> str:
-    """Sanitize user input to prevent injection attacks"""
-    if not text:
-        return ""
-    
-    # Remove potential script tags
-    text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.IGNORECASE | re.DOTALL)
-    
-    # Limit length
-    text = text[:max_length]
-    
-    return text.strip()
-
-def validate_numeric_input(value: int, min_val: int, max_val: int, default: int) -> int:
-    """Validate and clamp numeric input"""
-    try:
-        value = int(value)
-        return max(min_val, min(value, max_val))
-    except (ValueError, TypeError):
-        logger.warning(f"Invalid numeric input: {value}, using default: {default}")
-        return default
-
-# ============================================================
-# SENTIMENT ANALYSIS
-# ============================================================
-@st.cache_data(ttl=3600)
-def analyze_sentiment(text: str) -> Dict[str, any]:
-    """
-    Analyze sentiment of text using TextBlob
-    Returns: {polarity, sentiment_label, subjectivity}
-    """
-    try:
-        if not text or len(text.strip()) == 0:
-            return {'polarity': 0.0, 'sentiment': 'Neutral', 'subjectivity': 0.0}
-        
-        blob = TextBlob(str(text))
-        polarity = blob.sentiment.polarity
-        subjectivity = blob.sentiment.subjectivity
-        
-        # Classify sentiment
-        if polarity > 0.1:
-            sentiment = 'Positive'
-        elif polarity < -0.1:
-            sentiment = 'Negative'
-        else:
-            sentiment = 'Neutral'
-        
-        return {
-            'polarity': round(polarity, 3),
-            'sentiment': sentiment,
-            'subjectivity': round(subjectivity, 3)
-        }
-    except Exception as e:
-        logger.error(f"Sentiment analysis error: {str(e)}")
-        return {'polarity': 0.0, 'sentiment': 'Neutral', 'subjectivity': 0.0}
-
-def batch_sentiment_analysis(texts: List[str], progress_callback=None) -> List[Dict]:
-    """Perform sentiment analysis on multiple texts with progress tracking"""
-    results = []
-    total = len(texts)
-    
-    for idx, text in enumerate(texts):
-        sentiment = analyze_sentiment(text)
-        results.append(sentiment)
-        
-        if progress_callback and idx % 100 == 0:
-            progress_callback(f"Analyzing sentiment: {idx}/{total}")
-    
-    return results
-
-def add_sentiment_to_dataframe(df: pd.DataFrame, text_column: str = 'text') -> pd.DataFrame:
-    """Add sentiment analysis columns to dataframe"""
-    if df is None or df.empty or text_column not in df.columns:
-        return df
-    
-    logger.info(f"Adding sentiment analysis to {len(df)} rows")
-    
-    df = df.copy()
-    sentiments = batch_sentiment_analysis(df[text_column].fillna('').tolist())
-    
-    df['sentiment'] = [s['sentiment'] for s in sentiments]
-    df['sentiment_polarity'] = [s['polarity'] for s in sentiments]
-    df['sentiment_subjectivity'] = [s['subjectivity'] for s in sentiments]
-    
-    logger.info("✓ Sentiment analysis completed")
-    return df
-
-# ============================================================
-# ENHANCED CACHING UTILITIES
-# ============================================================
-def generate_cache_key(username: str, data_type: str) -> str:
-    """Generate a unique cache key for data"""
-    timestamp = datetime.now().strftime('%Y%m%d')
-    key_string = f"{username}_{data_type}_{timestamp}"
-    return hashlib.md5(key_string.encode()).hexdigest()
-
-def cache_data(key: str, data: Any) -> None:
-    """Cache data in session state"""
-    if 'data_cache' not in st.session_state:
-        st.session_state.data_cache = {}
-    st.session_state.data_cache[key] = {
-        'data': data,
-        'timestamp': datetime.now()
-    }
-
-def get_cached_data(key: str, max_age_hours: int = 24) -> Optional[Any]:
-    """Retrieve cached data if not expired"""
-    if 'data_cache' not in st.session_state:
-        return None
-    
-    cached = st.session_state.data_cache.get(key)
-    if not cached:
-        return None
-    
-    age = datetime.now() - cached['timestamp']
-    if age.total_seconds() / 3600 > max_age_hours:
-        logger.info(f"Cache expired for key: {key}")
-        return None
-    
-    logger.info(f"Cache hit for key: {key}")
-    return cached['data']
-
-# ============================================================
 # CHARTS
 # ============================================================
 def create_line_chart(df):
@@ -1355,234 +1138,44 @@ def create_bar_chart(df, column, title):
     except (KeyError, ValueError, TypeError):
         return None
 
-def create_sentiment_chart(df):
-    """Create sentiment distribution pie chart"""
-    try:
-        if df is None or df.empty or 'sentiment' not in df.columns:
-            return None
-        
-        sentiment_counts = df['sentiment'].value_counts()
-        
-        if sentiment_counts.empty:
-            return None
-        
-        colors = {
-            'Positive': '#00cc88',
-            'Negative': '#ff6b6b',
-            'Neutral': '#ffd166'
-        }
-        
-        chart_colors = [colors.get(sentiment, '#cccccc') for sentiment in sentiment_counts.index]
-        
-        fig = go.Figure(data=[go.Pie(
-            labels=sentiment_counts.index,
-            values=sentiment_counts.values,
-            marker_colors=chart_colors,
-            hole=0.4,
-            textinfo='label+percent',
-            textposition='outside'
-        )])
-        
-        fig.update_layout(
-            title="",
-            height=350,
-            showlegend=True,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Inter", color='#666')
-        )
-        
-        return fig
-    except (KeyError, ValueError, TypeError) as e:
-        logger.error(f"Sentiment chart error: {str(e)}")
-        return None
-
-def create_sentiment_timeline(df):
-    """Create sentiment polarity over time"""
-    try:
-        if df is None or df.empty or 'date' not in df.columns or 'sentiment_polarity' not in df.columns:
-            return None
-        
-        df_sorted = df.dropna(subset=['date', 'sentiment_polarity']).copy()
-        
-        if df_sorted.empty:
-            return None
-        
-        df_sorted = df_sorted.sort_values('date')
-        
-        # Calculate moving average
-        window = min(7, len(df_sorted) // 3) if len(df_sorted) > 10 else 3
-        df_sorted['sentiment_ma'] = df_sorted['sentiment_polarity'].rolling(window=window, min_periods=1).mean()
-        
-        fig = go.Figure()
-        
-        # Add scatter for individual posts
-        fig.add_trace(go.Scatter(
-            x=df_sorted['date'],
-            y=df_sorted['sentiment_polarity'],
-            mode='markers',
-            name='Individual Posts',
-            marker=dict(
-                size=6,
-                color=df_sorted['sentiment_polarity'],
-                colorscale=[[0, '#ff6b6b'], [0.5, '#ffd166'], [1, '#00cc88']],
-                showscale=True,
-                colorbar=dict(title="Sentiment")
-            ),
-            opacity=0.6
-        ))
-        
-        # Add moving average line
-        fig.add_trace(go.Scatter(
-            x=df_sorted['date'],
-            y=df_sorted['sentiment_ma'],
-            mode='lines',
-            name='Trend',
-            line=dict(color='#667eea', width=3)
-        ))
-        
-        fig.update_layout(
-            title="",
-            height=350,
-            showlegend=True,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Inter", color='#666'),
-            hovermode='x unified'
-        )
-        
-        fig.update_xaxes(showgrid=False, showline=False)
-        fig.update_yaxes(
-            showgrid=True,
-            gridcolor='#f0f0f0',
-            showline=False,
-            zeroline=True,
-            zerolinecolor='#cccccc',
-            zerolinewidth=2
-        )
-        
-        return fig
-    except (KeyError, ValueError, TypeError) as e:
-        logger.error(f"Sentiment timeline error: {str(e)}")
-        return None
-
 # ============================================================
 # EXTRACTION MODAL
 # ============================================================
 @st.dialog("Extract X Data", width="large")
 def show_extraction_modal():
-    st.markdown("### 🔍 Configure Your Extraction")
-    st.markdown("---")
-    
+    st.markdown("### Configure Your Extraction")
     col1, col2 = st.columns(2)
     with col1:
-        username = st.text_input(
-            "X Username", 
-            value="", 
-            help="Enter username without @ (e.g., elonmusk)",
-            placeholder="username"
-        )
-        target_posts = st.number_input(
-            "Target Posts", 
-            min_value=100, 
-            max_value=30000, 
-            value=5000, 
-            step=100,
-            help="Number of original posts to extract"
-        )
-        target_replies = st.number_input(
-            "Target Replies", 
-            min_value=100, 
-            max_value=30000, 
-            value=5000, 
-            step=100,
-            help="Number of replies to extract"
-        )
-    
+        username = st.text_input("X Username", value="", help="Enter username without @")
+        target_posts = st.number_input("Target Posts", min_value=100, max_value=30000, value=5000, step=100)
+        target_replies = st.number_input("Target Replies", min_value=100, max_value=30000, value=5000, step=100)
     with col2:
-        max_pages = st.slider(
-            "Maximum Pages", 
-            min_value=10, 
-            max_value=300, 
-            value=100, 
-            step=10,
-            help="Maximum API pages to scan"
-        )
+        max_pages = st.slider("Maximum Pages", min_value=10, max_value=300, value=100, step=10)
         fetch_comments = st.checkbox("Fetch Comments on Posts", value=True)
         if fetch_comments:
-            max_tweets_for_comments = st.number_input(
-                "Max Posts to Check", 
-                min_value=10, 
-                max_value=5000, 
-                value=500, 
-                step=10,
-                help="Number of top posts to check for comments"
-            )
-            comments_per_tweet = st.slider(
-                "Comments per Post", 
-                min_value=10, 
-                max_value=100, 
-                value=50, 
-                step=10
-            )
-        
-        enable_sentiment = st.checkbox("Enable Sentiment Analysis", value=True, help="Analyze sentiment of tweets and comments")
-    
+            max_tweets_for_comments = st.number_input("Max Posts to Check", min_value=10, max_value=5000, value=500, step=10)
+            comments_per_tweet = st.slider("Comments per Post", min_value=10, max_value=100, value=50, step=10)
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    if st.button("🚀 Start Extraction", type="primary", use_container_width=True):
-        # Validate username
+    if st.button("Start Extraction", type="primary", use_container_width=True):
         if not username:
-            st.error("❌ Please enter a username to continue")
-            logger.warning("Extraction attempted without username")
+            st.error("Please enter a username to continue")
             return
-        
-        is_valid, cleaned_username = validate_username(username)
-        
-        if not is_valid:
-            st.error("❌ Invalid username format. Please use only letters, numbers, and underscores (1-15 characters)")
-            logger.warning(f"Invalid username format: {username}")
-            return
-        
-        # Validate numeric inputs
-        target_posts = validate_numeric_input(target_posts, 100, 30000, 5000)
-        target_replies = validate_numeric_input(target_replies, 100, 30000, 5000)
-        max_pages = validate_numeric_input(max_pages, 10, 300, 100)
-        
-        logger.info(f"Starting extraction for user: {cleaned_username}")
-        logger.info(f"Parameters: posts={target_posts}, replies={target_replies}, pages={max_pages}, comments={fetch_comments}, sentiment={enable_sentiment}")
-        
-        run_extraction(
-            cleaned_username, 
-            target_posts, 
-            target_replies, 
-            max_pages, 
-            fetch_comments, 
-            max_tweets_for_comments if fetch_comments else 0, 
-            comments_per_tweet if fetch_comments else 50,
-            enable_sentiment
-        )
+        run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, 
+                      max_tweets_for_comments if fetch_comments else 0, 
+                      comments_per_tweet if fetch_comments else 50)
 
-def run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, max_tweets_for_comments, comments_per_tweet, enable_sentiment=True):
+def run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, max_tweets_for_comments, comments_per_tweet):
     progress_placeholder = st.empty()
     status_placeholder = st.empty()
     start_time = time.time()
-    
     try:
-        logger.info(f"Initializing API connection for user: {username}")
         api = TwitterAPI(API_KEY, API_HOST)
         extractor = TwitterExtractor(api)
-        
-        status_placeholder.info("🔍 Fetching user information...")
+        status_placeholder.info("Fetching user information...")
         user_info = extractor.get_user_info(username)
-        
         if not user_info:
-            logger.error(f"User not found: {username}")
-            st.error("❌ User not found. Please check the username.")
+            st.error("User not found. Please check the username.")
             return
-        
-        logger.info(f"User found: {user_info['name']} (@{user_info['username']})")
-        
         col1, col2 = st.columns([1, 4])
         with col1:
             if user_info.get('image_url_high_res'):
@@ -1590,59 +1183,28 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
         with col2:
             st.markdown(f"**{user_info['name']}** (@{user_info['username']})")
             st.caption(f"{user_info['followers_count']:,} followers")
-        
         st.divider()
-        
-        status_placeholder.info("📝 Extracting posts...")
+        status_placeholder.info("Extracting posts...")
         progress_bar = progress_placeholder.progress(0)
-        
         def update_progress(message):
             status_placeholder.info(message)
-        
-        posts = extractor.get_user_posts_paginated(
-            user_info['user_id'], 
-            username, 
-            target_posts, 
-            max_pages, 
-            progress_callback=update_progress
-        )
-        logger.info(f"Extracted {len(posts)} posts")
-        progress_bar.progress(30)
-        
-        status_placeholder.info("💬 Extracting replies...")
-        replies = extractor.get_user_replies_paginated(
-            user_info['user_id'], 
-            username, 
-            target_replies, 
-            max_pages, 
-            progress_callback=update_progress
-        )
-        logger.info(f"Extracted {len(replies)} replies")
-        progress_bar.progress(60)
-        
+        posts = extractor.get_user_posts_paginated(user_info['user_id'], username, target_posts, max_pages, progress_callback=update_progress)
+        progress_bar.progress(33)
+        status_placeholder.info("Extracting replies...")
+        replies = extractor.get_user_replies_paginated(user_info['user_id'], username, target_replies, max_pages, progress_callback=update_progress)
+        progress_bar.progress(66)
         comments = []
         if fetch_comments and posts:
-            status_placeholder.info("💭 Extracting comments (this may take a while)...")
-            comments = extractor.get_all_comments_parallel(
-                posts, 
-                username, 
-                max_tweets=max_tweets_for_comments,
-                comments_per_tweet=comments_per_tweet, 
-                max_workers=MAX_COMMENT_WORKERS,
-                progress_callback=update_progress
-            )
-            logger.info(f"Extracted {len(comments)} comments")
-        
-        progress_bar.progress(75)
-        
-        # Label tweet types
+            status_placeholder.info("Extracting comments (this may take a while)...")
+            comments = extractor.get_all_comments_parallel(posts, username, max_tweets=max_tweets_for_comments,
+                                                           comments_per_tweet=comments_per_tweet, max_workers=MAX_COMMENT_WORKERS,
+                                                           progress_callback=update_progress)
+        progress_bar.progress(100)
         for post in posts:
             post['tweet_type'] = 'Original Post'
         for reply in replies:
             reply['tweet_type'] = 'Reply to Others'
-        
         all_tweets = posts + replies
-        
         if all_tweets:
             df_all = pd.DataFrame(all_tweets)
             df_all = df_all.drop_duplicates(subset=['tweet_id'], keep='first')
@@ -1654,26 +1216,11 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
             if 'created_at' in df_all.columns:
                 df_all = df_all.sort_values('created_at', ascending=False)
             df_all = process_dataframe_for_analysis(df_all)
-            
-            # Add sentiment analysis if enabled
-            if enable_sentiment:
-                status_placeholder.info("🎭 Analyzing sentiment...")
-                progress_bar.progress(85)
-                df_all = add_sentiment_to_dataframe(df_all, 'text')
-                logger.info("✓ Sentiment analysis completed for tweets")
         else:
             df_all = pd.DataFrame()
-        
         if comments:
             df_comments = pd.DataFrame(comments)
             df_comments = df_comments.drop_duplicates(subset=['comment_id'], keep='first')
-            
-            # Add sentiment analysis for comments if enabled
-            if enable_sentiment and not df_comments.empty:
-                status_placeholder.info("🎭 Analyzing comment sentiment...")
-                progress_bar.progress(95)
-                df_comments = add_sentiment_to_dataframe(df_comments, 'comment_text')
-                logger.info("✓ Sentiment analysis completed for comments")
         else:
             df_comments = pd.DataFrame()
         
@@ -1695,16 +1242,13 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
             'URL': user_info.get('url', '')
         }])
         
-        progress_bar.progress(100)
         elapsed_time = time.time() - start_time
-        
         st.session_state['extracted_data'] = {
             'profile': df_user_profile,
             'tweets': df_all,
             'comments': df_comments,
             'username': username,
             'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'sentiment_enabled': enable_sentiment,
             'stats': {
                 'posts': len(posts),
                 'replies': len(replies),
@@ -1714,18 +1258,13 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
         }
         st.session_state.data_loaded = True
         st.session_state.ai_report_cache = {}
-        
         progress_placeholder.empty()
         status_placeholder.success(f"✅ Extraction complete in {elapsed_time:.1f} seconds!")
-        
-        logger.info(f"Extraction completed successfully for {username}")
-        logger.info(f"Total data: {len(df_all)} tweets, {len(df_comments)} comments")
-        
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("📝 Posts", len(posts))
-        col2.metric("💬 Replies", len(replies))
-        col3.metric("📊 Total", len(df_all) if not df_all.empty else 0)
-        col4.metric("💭 Comments", len(df_comments) if not df_comments.empty else 0)
+        col1.metric("Posts", len(posts))
+        col2.metric("Replies", len(replies))
+        col3.metric("Total", len(df_all) if not df_all.empty else 0)
+        col4.metric("Comments", len(df_comments) if not df_comments.empty else 0)
         st.success("🎉 Data successfully loaded! Close this dialog to view your dashboard.")
         time.sleep(2)
         st.rerun()
@@ -2568,135 +2107,6 @@ def dashboard_page():
             """, unsafe_allow_html=True)
         else:
             st.info("📊 Chart requires date information to display")
-    
-    # ============================================================
-    # SENTIMENT ANALYSIS SECTION
-    # ============================================================
-    if 'sentiment_enabled' in data and data['sentiment_enabled'] and 'sentiment' in df_tweets.columns:
-        st.markdown('<div class="section-header">🎭 Sentiment Analysis</div>', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Sentiment Distribution**")
-            fig_sentiment = create_sentiment_chart(df_tweets)
-            if fig_sentiment:
-                st.plotly_chart(fig_sentiment, use_container_width=True)
-                
-                # Calculate sentiment statistics
-                sentiment_counts = df_tweets['sentiment'].value_counts()
-                total = len(df_tweets)
-                positive_pct = (sentiment_counts.get('Positive', 0) / total * 100) if total > 0 else 0
-                negative_pct = (sentiment_counts.get('Negative', 0) / total * 100) if total > 0 else 0
-                neutral_pct = (sentiment_counts.get('Neutral', 0) / total * 100) if total > 0 else 0
-                
-                # Determine overall sentiment
-                if positive_pct > 50:
-                    sentiment_label = "Very Positive"
-                    sentiment_color = "#00cc88"
-                    sentiment_emoji = "😊"
-                elif positive_pct > negative_pct:
-                    sentiment_label = "Mostly Positive"
-                    sentiment_color = "#4caf50"
-                    sentiment_emoji = "🙂"
-                elif negative_pct > positive_pct:
-                    sentiment_label = "Needs Attention"
-                    sentiment_color = "#ff6b6b"
-                    sentiment_emoji = "😟"
-                else:
-                    sentiment_label = "Balanced"
-                    sentiment_color = "#ffd166"
-                    sentiment_emoji = "😐"
-                
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem 1.5rem; border-radius: 12px; border-left: 4px solid {sentiment_color}; margin-top: 0.5rem;">
-                    <p style="margin: 0; color: #495057; font-size: 0.9rem; line-height: 1.8;">
-                        {sentiment_emoji} <strong>Overall Sentiment: {sentiment_label}</strong><br>
-                        <span style="color: #00cc88;">● Positive: {positive_pct:.1f}%</span> | 
-                        <span style="color: #ff6b6b;">● Negative: {negative_pct:.1f}%</span> | 
-                        <span style="color: #ffd166;">● Neutral: {neutral_pct:.1f}%</span>
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.info("📊 Not enough sentiment data to display")
-        
-        with col2:
-            st.markdown("**Sentiment Trend Over Time**")
-            fig_sentiment_timeline = create_sentiment_timeline(df_tweets)
-            if fig_sentiment_timeline:
-                st.plotly_chart(fig_sentiment_timeline, use_container_width=True)
-                
-                # Calculate sentiment trend
-                if 'sentiment_polarity' in df_tweets.columns and df_tweets['sentiment_polarity'].notna().any():
-                    avg_polarity = df_tweets['sentiment_polarity'].mean()
-                    
-                    if avg_polarity > 0.1:
-                        trend_label = "Positive Trend"
-                        trend_color = "#00cc88"
-                        trend_emoji = "📈"
-                        trend_message = "Your content is generally well-received!"
-                    elif avg_polarity < -0.1:
-                        trend_label = "Negative Trend"
-                        trend_color = "#ff6b6b"
-                        trend_emoji = "📉"
-                        trend_message = "Consider addressing concerns in your content."
-                    else:
-                        trend_label = "Neutral Trend"
-                        trend_color = "#ffd166"
-                        trend_emoji = "➡️"
-                        trend_message = "Sentiment is balanced overall."
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem 1.5rem; border-radius: 12px; border-left: 4px solid {trend_color}; margin-top: 0.5rem;">
-                        <p style="margin: 0; color: #495057; font-size: 0.9rem; line-height: 1.8;">
-                            {trend_emoji} <strong>{trend_label}</strong><br>
-                            Average Polarity: {avg_polarity:.3f} (-1 to +1 scale)<br>
-                            💡 {trend_message}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info("📊 Not enough data to display sentiment trend")
-        
-        # Comments Sentiment Analysis (if available)
-        if df_comments is not None and not df_comments.empty and 'sentiment' in df_comments.columns:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Comments Sentiment Distribution**")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            comment_sentiment_counts = df_comments['sentiment'].value_counts()
-            total_comments = len(df_comments)
-            
-            with col1:
-                positive_comments = comment_sentiment_counts.get('Positive', 0)
-                positive_pct_comments = (positive_comments / total_comments * 100) if total_comments > 0 else 0
-                st.metric(
-                    label="Positive Comments",
-                    value=f"{positive_comments:,}",
-                    delta=f"{positive_pct_comments:.1f}%"
-                )
-            
-            with col2:
-                negative_comments = comment_sentiment_counts.get('Negative', 0)
-                negative_pct_comments = (negative_comments / total_comments * 100) if total_comments > 0 else 0
-                st.metric(
-                    label="Negative Comments",
-                    value=f"{negative_comments:,}",
-                    delta=f"-{negative_pct_comments:.1f}%",
-                    delta_color="inverse"
-                )
-            
-            with col3:
-                neutral_comments = comment_sentiment_counts.get('Neutral', 0)
-                neutral_pct_comments = (neutral_comments / total_comments * 100) if total_comments > 0 else 0
-                st.metric(
-                    label="Neutral Comments",
-                    value=f"{neutral_comments:,}",
-                    delta=f"{neutral_pct_comments:.1f}%",
-                    delta_color="off"
-                )
     
     st.markdown('<div class="section-header">Optimal Posting Times</div>', unsafe_allow_html=True)
     
