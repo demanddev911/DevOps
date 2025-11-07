@@ -32,8 +32,8 @@ import re
 # PAGE CONFIGURATION
 # ============================================================
 st.set_page_config(
-    page_title="X Analytics Suite",
-    page_icon="✕",
+    page_title="Reputation Agent",
+    page_icon="🎯",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -48,57 +48,105 @@ if 'show_raw_data' not in st.session_state:
 if 'ai_report_cache' not in st.session_state:
     st.session_state.ai_report_cache = {}
 
+
 # ============================================================
-# CUSTOM CSS
+# CUSTOM CSS - MUHIMMA DESIGN (OPTIMIZED)
 # ============================================================
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
     
+    /* ============================================================
+       BASE STYLES
+    ============================================================ */
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
     
+    .main {
+        background: #f5f7fa;
+        padding: 1.5rem;
+        min-height: 100vh;
+    }
+    
+    .block-container {
+        max-width: 1500px;
+        padding: 2.5rem 3rem;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+    }
+    
+    #MainMenu, footer, header {
+        visibility: hidden;
+    }
+    
+    /* Arabic text support */
     .arabic-text {
         font-family: 'Cairo', 'Inter', sans-serif;
         direction: rtl;
         text-align: right;
     }
     
-    .main {
-        background: #e8e8e8;
-        padding: 1rem;
+    /* ============================================================
+       TABS STYLING - MODERN TOP TABS
+    ============================================================ */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: #f8f9fa;
+        padding: 10px 14px;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
     
-    .block-container {
-        max-width: 1400px;
-        padding: 2rem;
+    .stTabs [data-baseweb="tab"] {
+        height: 52px;
         background: white;
-        border-radius: 32px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        color: #666;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0 2rem;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    .card {
-        background: #fafafa;
-        border-radius: 20px;
-        padding: 1.75rem;
-        border: none;
-        box-shadow: none;
-        margin-bottom: 1rem;
+    .stTabs [data-baseweb="tab"]:hover {
+        background: #E3F2FD;
+        border-color: #1976D2;
+        color: #1976D2;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
     }
     
+    .stTabs [aria-selected="true"] {
+        background: #1976D2 !important;
+        color: white !important;
+        border-color: #1976D2 !important;
+        box-shadow: 0 6px 20px rgba(25, 118, 210, 0.35) !important;
+        font-weight: 700;
+        transform: translateY(-1px);
+    }
+    
+    /* ============================================================
+       METRICS
+    ============================================================ */
     div[data-testid="metric-container"] {
-        background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-        border-radius: 24px;
-        padding: 2rem 1.75rem;
-        border: 1px solid #f0f0f0;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-        transition: all 0.3s ease;
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 2.25rem 2rem;
+        border: 2px solid #f0f0f0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
     }
@@ -110,15 +158,15 @@ st.markdown("""
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #ff6b6b 0%, #ee5a6f 50%, #667eea 100%);
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
         opacity: 0;
         transition: opacity 0.3s ease;
     }
     
     div[data-testid="metric-container"]:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        border-color: #e8e8e8;
+        transform: translateY(-6px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        border-color: #1976D2;
     }
     
     div[data-testid="metric-container"]:hover::before {
@@ -126,276 +174,441 @@ st.markdown("""
     }
     
     div[data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #000 0%, #333 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.25rem;
-        letter-spacing: -0.02em;
+        font-size: 2.4rem;
+        font-weight: 900;
+        color: #1976D2;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
     }
     
     div[data-testid="stMetricLabel"] {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         color: #888;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
+        letter-spacing: 0.1em;
     }
     
-    div[data-testid="stMetricDelta"] {
-        background: linear-gradient(135deg, #e8fff8 0%, #d4f8ea 100%);
-        color: #00aa6d;
-        padding: 0.4rem 0.9rem;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        border: 1px solid #c0f0dc;
-        box-shadow: 0 2px 6px rgba(0, 204, 136, 0.1);
-        letter-spacing: 0.02em;
-    }
-    
-    .hero-section {
-        text-align: center;
-        padding: 2rem 0;
-        margin-bottom: 2rem;
-    }
-    
-    .hero-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #000;
-        margin-bottom: 0.5rem;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.5rem;
-        color: #ccc;
-    }
-    
+    /* ============================================================
+       SECTION HEADERS
+    ============================================================ */
     .section-header {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #000;
-        margin: 2rem 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .report-section {
-        background: #fafafa;
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        direction: rtl;
-        text-align: right;
-        font-family: 'Cairo', sans-serif;
-        border-right: 4px solid #ff6b6b;
-    }
-    
-    .report-title {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         font-weight: 800;
-        color: #000;
-        margin-bottom: 1rem;
-        font-family: 'Cairo', sans-serif;
+        color: #212121;
+        margin: 3rem 0 1.75rem 0;
+        padding-bottom: 1.25rem;
+        border-bottom: 3px solid #1976D2;
+        position: relative;
     }
     
-    .report-content {
-        font-size: 1rem;
-        line-height: 2;
-        color: #2d3748;
-        font-family: 'Cairo', sans-serif;
-        text-align: justify;
+    .section-header::before {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
     }
     
+    /* ============================================================
+       BUTTONS - 3-COLOR SYSTEM (NO SHADOWS)
+    ============================================================ */
+    /* Default Buttons - Green */
     .stButton button {
-        background: linear-gradient(135deg, #f25e6e 0%, #e04555 100%);
+        background: #00cc88;
         color: white;
-        border: none;
-        padding: 1rem 2rem;
+        border: none !important;
+        padding: 0.85rem 2rem;
         border-radius: 50px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.9rem;
-        box-shadow: 0 8px 20px rgba(242, 94, 110, 0.3);
-        transition: all 0.3s;
+        box-shadow: none !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        letter-spacing: 0.03em;
+        cursor: pointer;
     }
     
     .stButton button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 12px 30px rgba(242, 94, 110, 0.4);
-    }
-    
-    .stButton button[kind="secondary"] {
-        background: linear-gradient(135deg, #00cc88 0%, #00aa70 100%);
-        box-shadow: 0 8px 20px rgba(0, 204, 136, 0.3);
-    }
-    
-    .stButton button[kind="secondary"]:hover {
-        box-shadow: 0 12px 30px rgba(0, 204, 136, 0.4);
-    }
-    
-    button[key="main_extraction_btn"] {
-        background: linear-gradient(135deg, #667eea 0%, #564ba2 100%) !important;
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3) !important;
-    }
-    
-    button[key="main_extraction_btn"]:hover {
-        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
-    }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 1.5rem !important;
-        background: transparent !important;
-        margin-top: -1rem;
-        margin-bottom: 0 !important;
-        padding: 0 !important;
-        border-bottom: none !important;
-    }
-    
-    .stTabs [data-baseweb="tab-list"] button {
-        border-bottom: none !important;
-        background-clip: padding-box !important;
-    }
-    
-    .stTabs {
-        border-bottom: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    .stTabs > div {
-        border-bottom: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-    }
-    
-    .stTabs > div > div {
-        background: transparent !important;
-        padding: 0 !important;
-    }
-    
-    [data-testid="stTabs"] {
-        border-bottom: none !important;
-        background: transparent !important;
-        padding: 0 !important;
-    }
-    
-    [data-testid="stTabs"] > div {
-        background: transparent !important;
-        padding: 0 !important;
-    }
-    
-    .stTabs [data-baseweb="tab-border"] {
-        display: none !important;
-    }
-    
-    .stTabs [data-baseweb="tab-highlight"] {
-        display: none !important;
-    }
-    
-    .stTabs [data-baseweb="tab"]::before,
-    .stTabs [data-baseweb="tab"]::after {
-        display: none !important;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        background: linear-gradient(135deg, #f8f8f8 0%, #ececec 100%) !important;
+        box-shadow: none !important;
+        background: #00b377;
         border: none !important;
-        border-radius: 50px !important;
-        padding: 1rem 2.5rem !important;
-        font-weight: 600 !important;
-        color: #888 !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
-        font-size: 0.95rem !important;
-        letter-spacing: 0.02em !important;
-        min-width: 160px !important;
-        height: auto !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
     }
     
-    .stTabs [data-baseweb="tab"]:hover {
-        background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
-        color: #555 !important;
+    .stButton button:active {
+        transform: translateY(0px);
     }
     
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #564ba2 100%) !important;
-        color: white !important;
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.35) !important;
-        transform: translateY(-1px) !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-    }
-    
-    .stTabs [aria-selected="true"]:hover {
-        background: linear-gradient(135deg, #7688eb 0%, #667eea 100%) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4) !important;
-    }
-    
-    button[data-baseweb="tab"] {
-        background: linear-gradient(135deg, #f8f8f8 0%, #ececec 100%) !important;
+    /* Primary Buttons - Blue */
+    .stButton button[kind="primary"],
+    button[data-testid="baseButton-primary"] {
+        background: #1976d2 !important;
+        box-shadow: none !important;
         border: none !important;
-        border-radius: 50px !important;
-        padding: 1rem 2.5rem !important;
-        font-weight: 600 !important;
-        color: #888 !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
     }
     
-    button[data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #564ba2 100%) !important;
-        color: white !important;
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.35) !important;
+    .stButton button[kind="primary"]:hover,
+    button[data-testid="baseButton-primary"]:hover {
+        background: #1565c0 !important;
+        box-shadow: none !important;
+        border: none !important;
     }
     
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #ff6b6b 0%, #ee5a6f 100%);
+    /* Secondary Buttons - Red */
+    .stButton button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
+        background: #ff6b6b !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .stButton button[kind="secondary"]:hover,
+    button[data-testid="baseButton-secondary"]:hover {
+        background: #e85555 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    /* Button container spacing */
+    .stButton {
+        margin-bottom: 0.5rem;
+        margin-top: 0;
+    }
+    
+    /* ============================================================
+       INFO BOXES
+    ============================================================ */
+    .info-box,
+    .success-box,
+    .warning-box,
+    .error-box {
+        padding: 1.5rem 2rem;
+        border-radius: 16px;
+        margin: 1.75rem 0;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        transition: all 0.3s ease;
+    }
+    
+    .info-box {
+        background: #e3f2fd;
+        border-left: 5px solid #2196f3;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+    }
+    
+    .info-box:hover {
+        box-shadow: 0 6px 18px rgba(33, 150, 243, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .success-box {
+        background: #e8f5e9;
+        border-left: 5px solid #4caf50;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+    }
+    
+    .success-box:hover {
+        box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .warning-box {
+        background: #fff3e0;
+        border-left: 5px solid #ff9800;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+    }
+    
+    .warning-box:hover {
+        box-shadow: 0 6px 18px rgba(255, 152, 0, 0.25);
+        transform: translateX(2px);
+    }
+    
+    .error-box {
+        background: #ffebee;
+        border-left: 5px solid #f44336;
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
+    }
+    
+    .error-box:hover {
+        box-shadow: 0 6px 18px rgba(244, 67, 54, 0.25);
+        transform: translateX(2px);
+    }
+    
+    /* ============================================================
+       ACCORDION REPORT SECTIONS - COLLAPSIBLE DESIGN
+    ============================================================ */
+    .accordion-card {
+        background: white;
+        border-radius: 16px;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        border: 2px solid #E0E0E0;
+    }
+    
+    .accordion-card:hover {
+        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.15);
+        border-color: #BBDEFB;
+    }
+    
+    .accordion-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem 2rem;
+        cursor: pointer;
+        background: #FAFAFA;
+        transition: all 0.3s ease;
+        direction: rtl;
+    }
+    
+    .accordion-header:hover {
+        background: #F5F5F5;
+    }
+    
+    .accordion-header-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+    
+    .accordion-icon {
+        width: 12px;
+        height: 12px;
+        background: #1976D2;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    .accordion-title-group {
+        flex: 1;
+    }
+    
+    .accordion-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #212121;
+        margin: 0;
+        font-family: 'Cairo', sans-serif;
+    }
+    
+    .accordion-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+        margin: 0.25rem 0 0 0;
+        font-style: italic;
+    }
+    
+    .accordion-arrow {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+        font-size: 1.2rem;
+        color: #1976D2;
+    }
+    
+    .accordion-arrow.expanded {
+        transform: rotate(180deg);
+    }
+    
+    .accordion-body {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .accordion-body.expanded {
+        max-height: 5000px;
+    }
+    
+    .accordion-content {
+        padding: 2rem;
+    }
+    
+    .selected-answer-box {
+        background: #E8F5E9;
         border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border-right: 4px solid #4CAF50;
     }
     
+    .selected-answer-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #2E7D32;
+        margin-bottom: 0.5rem;
+        font-family: 'Cairo', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .selected-answer-text {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #2E7D32;
+        font-family: 'Cairo', sans-serif;
+        line-height: 1.6;
+    }
+    
+    .reasoning-box {
+        background: #FFF8E1;
+        border-radius: 10px;
+        padding: 1.5rem;
+        border-right: 4px solid #F57C00;
+    }
+    
+    .reasoning-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #E65100;
+        margin-bottom: 1rem;
+        font-family: 'Cairo', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .reasoning-content {
+        font-size: 1rem;
+        line-height: 2;
+        color: #212121;
+        font-family: 'Cairo', sans-serif;
+        text-align: justify;
+    }
+    
+    .reasoning-content a {
+        color: #1976D2;
+        text-decoration: none;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(25, 118, 210, 0.08);
+        transition: all 0.3s ease;
+        display: inline-block;
+        margin: 0 4px;
+    }
+    
+    .reasoning-content a:hover {
+        color: white;
+        background: #1976D2;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+    }
+    
+    /* ============================================================
+       FILE UPLOADER
+    ============================================================ */
+    [data-testid="stFileUploader"] {
+        background: #FAFAFA;
+        border: 3px dashed #1976D2;
+        border-radius: 20px;
+        padding: 2.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        background: #E3F2FD;
+        border-color: #1565C0;
+    }
+    
+    /* ============================================================
+       RADIO BUTTONS
+    ============================================================ */
+    .stRadio > div {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 2px solid #f0f0f0;
+    }
+    
+    /* ============================================================
+       PROGRESS BAR
+    ============================================================ */
+    .stProgress > div > div {
+        background: linear-gradient(90deg, #1976D2 0%, #1565C0 100%);
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+    }
+    
+    /* ============================================================
+       SCROLLBAR
+    ============================================================ */
     ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #f1f3f5;
+        border-radius: 10px;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 4px;
+        background: linear-gradient(180deg, #1976D2 0%, #1565C0 100%);
+        border-radius: 10px;
+        border: 2px solid #f1f3f5;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #999;
+        background: linear-gradient(180deg, #1565C0 0%, #1976D2 100%);
+    }
+    
+    /* ============================================================
+       RESPONSIVE DESIGN
+    ============================================================ */
+    @media (max-width: 768px) {
+        .block-container {
+            padding: 1.5rem 1.25rem;
+        }
+        
+        .section-header {
+            font-size: 1.2rem;
+            margin: 2rem 0 1rem 0;
+        }
+        
+        div[data-testid="stMetricValue"] {
+            font-size: 1.8rem;
+        }
+        
+        .report-section {
+            padding: 1.5rem;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            padding: 0 1rem;
+            font-size: 0.8rem;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ============================================================
-# API CONFIGURATION "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
+# API CONFIGURATION
 # ============================================================
+# Twitter API Configuration
 API_KEY = "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
-
 API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
-MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
-MISTRAL_MODEL = "mistral-large-latest"
-MISTRAL_TEMPERATURE = 0.3
-MISTRAL_MAX_TOKENS = 4000
+# Google Gemini AI Configuration
+GEMINI_API_KEY = "AIzaSyBIYTpbNSeo4mOHevMmXvpex4U7-IMP0TI"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+GEMINI_TEMPERATURE = 0.3
+GEMINI_MAX_TOKENS = 4000
 
 # ============================================================
 # TWITTER API CLASSES
@@ -818,18 +1031,22 @@ class TwitterExtractor:
         return all_comments
 
 # ============================================================
-# MISTRAL AI ANALYZER
+# GEMINI AI ANALYZER
 # ============================================================
-class MistralAnalyzer:
+class GeminiAnalyzer:
+    """Google Gemini AI Analyzer with enhanced error handling and retry logic"""
+    
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
+            "Content-Type": "application/json"
         }
         self.session = self._create_session()
+        self.request_count = 0
+        self.success_count = 0
         
     def _create_session(self) -> requests.Session:
+        """Create session with connection pooling and retry strategy"""
         session = requests.Session()
         retry_strategy = Retry(
             total=3,
@@ -837,49 +1054,96 @@ class MistralAnalyzer:
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["POST"]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,
+            pool_maxsize=20
+        )
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
 
-    def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with optimized error handling"""
+    def analyze(self, prompt: str, max_tokens: int = GEMINI_MAX_TOKENS) -> Optional[str]:
+        """Analyze prompt with Gemini AI with optimized error handling"""
+        self.request_count += 1
+        url = f"{GEMINI_API_URL}?key={self.api_key}"
+        
         payload = {
-            "model": MISTRAL_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": MISTRAL_TEMPERATURE,
-            "max_tokens": max_tokens
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }],
+            "generationConfig": {
+                "temperature": GEMINI_TEMPERATURE,
+                "maxOutputTokens": max_tokens
+            }
         }
+        
         for attempt in range(3):
             try:
                 response = self.session.post(
-                    MISTRAL_API_URL,
+                    url,
                     headers=self.headers,
                     json=payload,
                     timeout=120
                 )
+                
                 if response.status_code == 200:
-                    return response.json()['choices'][0]['message']['content']
+                    result = response.json()
+                    text = result['candidates'][0]['content']['parts'][0]['text']
+                    self.success_count += 1
+                    return text
+                    
                 elif response.status_code == 429:
-                    wait_time = 2 * (attempt + 1)
+                    # Rate limit - exponential backoff
+                    wait_time = 2 ** (attempt + 1)
                     time.sleep(wait_time)
+                    continue
+                    
                 elif response.status_code >= 500:
+                    # Server error - retry with backoff
                     if attempt < 2:
                         time.sleep(2 * (attempt + 1))
                     continue
-                else:
+                    
+                elif response.status_code == 400:
+                    # Bad request - log and return None
                     return None
+                    
+                else:
+                    # Other errors
+                    return None
+                    
             except requests.exceptions.Timeout:
+                # Timeout - retry with longer wait
                 if attempt < 2:
-                    time.sleep(2 * (attempt + 1))
+                    time.sleep(3 * (attempt + 1))
                 continue
-            except requests.exceptions.RequestException:
+                
+            except requests.exceptions.RequestException as e:
+                # Network errors - retry
                 if attempt < 2:
                     time.sleep(2)
                 continue
-            except (KeyError, ValueError, json.JSONDecodeError):
+                
+            except (KeyError, ValueError, json.JSONDecodeError) as e:
+                # JSON parsing errors - return None
                 return None
+                
+            except Exception as e:
+                # Unexpected errors - log and retry
+                if attempt < 2:
+                    time.sleep(2)
+                continue
+                    
         return None
+    
+    def get_stats(self) -> Dict:
+        """Get analyzer statistics"""
+        return {
+            'total_requests': self.request_count,
+            'successful_requests': self.success_count,
+            'success_rate': (self.success_count / self.request_count * 100) if self.request_count > 0 else 0
+        }
 
 # ============================================================
 # DATA PROCESSING
@@ -943,33 +1207,55 @@ def prepare_dataframe_for_excel(df: pd.DataFrame) -> pd.DataFrame:
 # CHARTS
 # ============================================================
 def create_line_chart(df):
-    """Create engagement timeline chart with optimized data processing"""
+    """
+    Create engagement timeline chart with optimized data processing
+    
+    Args:
+        df: DataFrame with date and engagement columns
+        
+    Returns:
+        Plotly figure or None if data is invalid
+    """
     try:
-        if df is None or df.empty or 'date' not in df.columns or df['date'].isna().all():
+        # Validate input data
+        if df is None or df.empty:
+            return None
+        if 'date' not in df.columns or df['date'].isna().all():
+            return None
+        
+        # Check required columns exist
+        required_cols = ['likes', 'retweets', 'replies']
+        if not all(col in df.columns for col in required_cols):
             return None
 
-        # Optimized aggregation
+        # Optimized aggregation with error handling
         daily_stats = df.groupby('date', as_index=False).agg({
             'likes': 'sum',
             'retweets': 'sum',
             'replies': 'sum'
         })
-        daily_stats['total_engagement'] = daily_stats[['likes', 'retweets', 'replies']].sum(axis=1)
+        
+        # Calculate total engagement
+        daily_stats['total_engagement'] = daily_stats[required_cols].sum(axis=1)
         daily_stats = daily_stats.dropna()
 
-        if daily_stats.empty:
+        if daily_stats.empty or len(daily_stats) < 1:
             return None
 
+        # Create figure with Muhimma purple theme
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=daily_stats['date'],
             y=daily_stats['total_engagement'],
             name='Total Engagement',
-            line=dict(color='#ff6b6b', width=3),
+            line=dict(color='#1976D2', width=3),
             mode='lines+markers',
             fill='tozeroy',
-            fillcolor='rgba(255, 107, 107, 0.1)'
+            fillcolor='rgba(25, 118, 210, 0.1)',
+            marker=dict(size=6, color='#1976D2')
         ))
+        
+        # Update layout with Muhimma styling
         fig.update_layout(
             title="",
             xaxis_title="",
@@ -980,15 +1266,25 @@ def create_line_chart(df):
             paper_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Inter", color='#666'),
             showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
         fig.update_xaxes(showgrid=False, showline=False)
         fig.update_yaxes(showgrid=True, gridcolor='#f0f0f0', showline=False)
+        
         return fig
+        
     except (KeyError, ValueError, TypeError) as e:
         return None
+    except Exception as e:
+        return None
 
-def create_metric_comparison_chart(df, metric_name, metric_color='#667eea'):
+def create_metric_comparison_chart(df, metric_name, metric_color='#1976D2'):
     """Create metric comparison chart with posts count"""
     try:
         if df is None or df.empty or 'date' not in df.columns or df['date'].isna().all():
@@ -1143,6 +1439,17 @@ def create_bar_chart(df, column, title):
 # ============================================================
 @st.dialog("Extract X Data", width="large")
 def show_extraction_modal():
+    # Brand Header with Logo
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 1rem; margin: 0 0 1.5rem 0; padding: 1.5rem; background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); border-radius: 16px;'>
+        <div style='font-size: 2.5rem; line-height: 1;'>🎯</div>
+        <div>
+            <h2 style='margin: 0; padding: 0; font-size: 1.4rem; font-weight: 800; color: white;'>Reputation Agent</h2>
+            <p style='margin: 0; padding: 0; font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 500;'>AI-Powered Social Media Analytics</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### Configure Your Extraction")
     col1, col2 = st.columns(2)
     with col1:
@@ -1275,35 +1582,90 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 # ============================================================
 # AI REPORT GENERATION - مع روابط إثبات بعد كل جملة + Hyperlinks
 # ============================================================
-def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+def generate_ai_section(gemini: GeminiAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+    """
+    Generate AI section with caching and error handling
+    
+    Args:
+        gemini: GeminiAnalyzer instance
+        section_name: Unique section identifier for caching
+        prompt: AI prompt text
+        max_tokens: Maximum tokens for response
+        
+    Returns:
+        Generated text or error message
+    """
+    # Check cache first
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
-    result = mistral.analyze(prompt, max_tokens)
-    if result:
+    
+    # Generate new content
+    result = gemini.analyze(prompt, max_tokens)
+    
+    if result and result.strip():
+        # Clean formatting markers
         cleaned_result = result.replace('**', '').replace('*', '').strip()
+        
+        # Cache the result
         st.session_state.ai_report_cache[section_name] = cleaned_result
         return cleaned_result
     else:
-        return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
+        # Return error message
+        error_msg = f"⚠️ تعذر إنشاء القسم {section_name}. يرجى المحاولة مرة أخرى."
+        return error_msg
 
-def display_report_section(title: str, content: str):
-    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
+def display_report_section(title: str, content: str, section_id: str):
+    """
+    Display collapsible accordion report section with clickable hyperlinks using st.expander
+    
+    Args:
+        title: Section title (Arabic)
+        content: Section content with embedded URLs
+        section_id: Unique identifier for the accordion section
+    """
     import re
     
-    # تحويل الروابط لـ hyperlinks
+    # Convert evidence links to clickable hyperlinks
     def make_link_clickable(match):
-        url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #1DA1F2; text-decoration: none; font-weight: bold; border-bottom: 1px solid #1DA1F2;">🔗 رابط الإثبات</a>'
+        url = match.group(1).strip()
+        if not url.startswith('http'):
+            return match.group(0)
+        return f'<a href="{url}" target="_blank">🔗 دليل</a>'
     
-    # Pattern للروابط داخل [الإثبات: ...]
+    def make_proof_link_clickable(match):
+        url = match.group(1).strip()
+        if not url.startswith('http'):
+            return match.group(0)
+        display_url = url if len(url) < 50 else url[:47] + '...'
+        return f'<a href="{url}" target="_blank">🔗 {display_url}</a>'
+    
+    # Apply link patterns
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
+    content = re.sub(r'دليل:\s*(https?://\S+)', make_proof_link_clickable, content)
+    content = re.sub(r'🔗\s*(https?://\S+)', make_proof_link_clickable, content)
     
-    st.markdown(f"""
-    <div class="report-section">
-        <div class="report-title">{title}</div>
-        <div class="report-content">{content}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Split content into summary and detailed analysis (if applicable)
+    content_parts = content.split('\n\n', 1)
+    summary = content_parts[0] if len(content_parts) > 0 else content
+    detailed = content_parts[1] if len(content_parts) > 1 else content
+    
+    # Use Streamlit expander (native and working)
+    with st.expander(f"🔵 {title}", expanded=False):
+        # Summary box
+        st.markdown(f"""
+        <div class="selected-answer-box">
+            <div class="selected-answer-title">✅ الملخص السريع</div>
+            <div class="selected-answer-text">{summary[:200]}...</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Detailed analysis box
+        st.markdown(f"""
+        <div class="reasoning-box">
+            <div class="reasoning-title">🧠 التحليل التفصيلي</div>
+            <div class="reasoning-content">{detailed}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 def extract_tweet_urls_for_evidence(df_tweets, sample_size=200):
     """استخراج جميع التغريدات مع روابطها (بدون فلترة)"""
@@ -1342,7 +1704,7 @@ def ai_detailed_report_page():
         st.warning("ما فيه بيانات متوفرة حق التحليل")
         return
     
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
+    gemini = GeminiAnalyzer(GEMINI_API_KEY)
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
@@ -1359,17 +1721,14 @@ def ai_detailed_report_page():
     status_text = st.empty()
     
     sections = [
-        ("introduction", "المقدمة", 8),
-        ("news_sources", "المصادر الإخبارية المعتمدة", 16),
-        ("network", "الشبكة الاجتماعية والتفاعلات", 24),
-        ("main_topics", "القضايا والموضوعات الرئيسية", 32),
-        ("uae_content", "المحتوى المتعلق بدولة الإمارات", 40),
-        ("influence", "التأثير على وسائل التواصل", 48),
-        ("political", "التوجهات السياسية العامة", 56),
-        ("mb_links", "الارتباطات بجماعة الإخوان", 64),
-        ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة", 72),
-        ("comments_content", "تحليل التعليقات والنقاشات", 80),
-        ("critical_questions", "التحليل العميق - الأسئلة الحرجة", 90),
+        ("introduction", "🧭 الملخّص التنفيذي", 10),
+        ("what_people_say", "💬 ماذا يقول الناس عن الحساب", 22),
+        ("complaints_issues", "😟 نقاط الشكوى أو الانتقاد المتكررة", 34),
+        ("why_they_say", "🧠 تحليل أسباب الرأي العام", 46),
+        ("how_to_improve", "💡 ما الذي يمكن فعله لتحسين الصورة", 58),
+        ("positive_opportunities", "🚀 الفرص الإيجابية القابلة للاستثمار", 70),
+        ("evidence_examples", "🧩 أمثلة وتحليلات مدعومة بالأدلة", 82),
+        ("monitoring_metrics", "📊 المؤشرات المقترحة للمتابعة والتقييم", 94),
     ]
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
@@ -1377,472 +1736,368 @@ def ai_detailed_report_page():
         progress_bar.progress(progress_val)
         
         if section_key == "introduction":
-            prompt = f"""أنت محلل خبير. اكتب مقدمة احترافية حق تقرير تحليل حساب تويتر.
-
-معلومات الحساب:
-- اسم المستخدم: @{username}
-- إجمالي التغريدات: {len(df_tweets):,}
-- عينة من آخر التغريدات:
-{chr(10).join([f"- {t[:150]}" for t in sample_tweets[:200]])}
-
-المطلوب:
-اكتب مقدمة تحليلية (200-300 كلمة) تشرح:
-1. أهمية تحليل حسابات التواصل الاجتماعي
-2. نظرة عامة عن الحساب @{username}
-3. نطاق التقرير وشو يغطي
-4. منهجية التحليل المتبعة
-
-اكتب بأسلوب احترافي ومباشر من دون زخرفة. ما تستخدم أي رموز أو علامات نجمية.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 5000)
-            
-        elif section_key == "news_sources":
-            prompt = f"""أنت محلل إعلامي خبير. حلل المصادر الإخبارية اللي يعتمد عليها الحساب @{username}.
-
-التغريدات مع روابطها:
-{evidence_text}
-
-المطلوب - اكتب قسماً كاملاً (500-700 كلمة) يتضمن:
-
-1. حدد المصادر الإخبارية المذكورة أو المشار لها
-2. رتبها حسب الأكثر ذكراً
-3. حلل شو يعني هالاختيار حق المصادر
-4. استنتاجات عن مصداقية المحتوى
-
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-بعد كل جملة تحليلية، حط رابط الإثبات بهالشكل بالضبط:
-
-"الحساب يعتمد بشكل كبير على قناة الجزيرة [الإثبات: https://twitter.com/username/status/123456789]، وهالشي يدل على توجه معين [الإثبات: https://twitter.com/username/status/987654321]."
-
-**القواعد الإلزامية:**
-- كل جملة تحليلية لازم يكون معاها رابط إثبات
-- الرابط يكون بين قوسين مربعين: [الإثبات: رابط التغريدة الكامل]
-- استخدم الروابط الفعلية من التغريدات اللي فوق
-- ما تجمع الروابط في النهاية، لازم تكون inline
-
-اكتب بأسلوب تحليلي احترافي. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
-            
-        elif section_key == "network":
-            prompt = f"""أنت محلل شبكات اجتماعية خبير. حلل الشبكة الاجتماعية حق الحساب @{username}.
-
-التغريدات مع روابطها:
-{evidence_text}
-
-المطلوب - اكتب قسماً كاملاً (500-700 كلمة) يتضمن:
-
-1. استخرج كل الحسابات المذكورة (@username)
-2. رتب الأكثر ذكراً
-3. حدد طبيعة هالحسابات
-4. شو تخبرنا هالشبكة عن توجهات الحساب
-5. هل فيه أنماط مثيرة للاهتمام
-
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"الحساب يتفاعل مع @AlJazeera [الإثبات: https://twitter.com/username/status/123456789] و@AJArabic [الإثبات: https://twitter.com/username/status/987654321]."
-
-**القواعد الإلزامية:**
-- كل جملة لازم يكون معاها رابط إثبات
-- الرابط: [الإثبات: رابط التغريدة الكامل]
-- استخدم الروابط الفعلية من التغريدات اللي فوق
-
-اكتب بأسلوب تحليلي. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
-            
-        elif section_key == "main_topics":
-            prompt = f"""أنت محلل محتوى خبير. حلل القضايا والموضوعات اللي يركز عليها الحساب @{username}.
-
-التغريدات مع روابطها:
-{evidence_text}
-
-المطلوب - اكتب قسماً كاملاً (600-900 كلمة) يتضمن:
-
-1. حدد أهم 10 قضايا/موضوعات يركز عليها الحساب
-2. رتبها حسب الأهمية والتكرار
-3. القضايا اللي يدعمها بقوة
-4. القضايا اللي ينتقدها
-5. القضايا الإقليمية والدولية
-6. تحليل عميق للأجندة العامة
-
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"القضية الأولى: القضية الفلسطينية
-الحساب يركز بشكل كبير على القضية الفلسطينية [الإثبات: https://twitter.com/username/status/123456789]، ويدعم المقاومة [الإثبات: https://twitter.com/username/status/987654321]."
-
-**القواعد الإلزامية:**
-- كل قضية لازم يكون معاها 3-5 روابط إثبات موزعة
-- الرابط: [الإثبات: رابط التغريدة الكامل]
-- استخدم الروابط الفعلية
-
-اكتب بأسلوب تحليلي شامل. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 10000)
-            
-        elif section_key == "uae_content":
-            # Mistral هو اللي يحدد التغريدات الإماراتية
-            prompt = f"""أنت محلل متخصص. حلل بدقة المحتوى المتعلق بدولة الإمارات في حساب @{username}.
-
-جميع التغريدات مع روابطها (أنت حدد اللي متعلق بالإمارات):
-{evidence_text}
-
-عدد التغريدات الكلي: {len(df_tweets):,}
-
-**مهمتك:**
-1. **اقرأ جميع التغريدات** وحدد أنت اللي فيها كلام عن الإمارات (صريح أو ضمني)
-   - ممكن تكون التغريدة تذكر: الإمارات، دبي، أبوظبي، محمد بن زايد، محمد بن راشد
-   - أو تتكلم عن سياسات إماراتية بدون ذكر الاسم صراحة
-   - أو تنتقد/تمدح قرارات إماراتية
-2. **احسب كم تغريدة** من الـ {len(df_tweets):,} تتكلم عن الإمارات
-3. **احسب النسبة المئوية**
-4. **حلل المشاعر**: إيجابي/سلبي/محايد/معادي
-5. **المواضيع الإماراتية المحددة** (السياسة الخارجية، التطبيع، القيادة، إلخ)
-6. **هل فيه إشارات للقيادة الإماراتية**
-7. **تحليل معمق لطبيعة الخطاب**
-8. **التقييم النهائي**
-
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"الحساب ينتقد السياسة الخارجية الإماراتية [الإثبات: https://twitter.com/username/status/123456789]، ويهاجم التطبيع [الإثبات: https://twitter.com/username/status/987654321]."
-
-**القواعد الإلزامية:**
-- **أنت حدد** التغريدات الإماراتية من خلال قراءة المحتوى (مش من keywords)
-- كل جملة لازم يكون معاها رابط إثبات من التغريدات اللي قريتها
-- عند تحليل المشاعر، حط 5-10 روابط على الأقل
-- الرابط: [الإثبات: رابط التغريدة الكامل]
-- استخدم الروابط الفعلية من التغريدات اللي فوق
-
-كن دقيقاً وموضوعياً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية.
-
-اكتب قسماً كاملاً (700-1000 كلمة)."""
-            content = generate_ai_section(mistral, section_key, prompt, 12000)
-            
-        elif section_key == "influence":
-            total_likes = int(df_tweets['likes'].sum())
-            total_retweets = int(df_tweets['retweets'].sum())
-            total_replies = int(df_tweets['replies'].sum())
-            avg_engagement = int((total_likes + total_retweets + total_replies) / len(df_tweets))
-            
-            top_tweets = df_tweets.nlargest(10, 'total_engagement')
-            top_tweets_evidence = "\n\n".join([
-                f"التغريدة: {row['text'][:150]}\nالرابط: {row['url']}\nالتفاعل: {row['total_engagement']:,}"
-                for _, row in top_tweets.iterrows()
-            ])
-            
-            prompt = f"""أنت محلل تأثير رقمي خبير. حلل تأثير ووصول الحساب @{username}.
+            prompt = f"""أنت محلل سمعة رقمية. اكتب ملخص تنفيذي مختصر بالنقاط.
 
 البيانات:
-- إجمالي التغريدات: {len(df_tweets):,}
-- إجمالي الإعجابات: {total_likes:,}
-- إجمالي إعادة التغريد: {total_retweets:,}
-- إجمالي التعليقات: {total_replies:,}
-- متوسط التفاعل: {avg_engagement:,}
+- الحساب: @{username}
+- التغريدات: {len(df_tweets):,}
+- عينة: {chr(10).join([f"- {t[:100]}" for t in sample_tweets[:50]])}
 
-أكثر 10 تغريدات تفاعلاً:
-{top_tweets_evidence}
+المطلوب - أجب بهذا التنسيق بالضبط:
 
-المطلوب - اكتب قسماً كاملاً (500-700 كلمة) يتضمن:
+**الانطباع العام:**
+- [إيجابي / سلبي / مختلط]
 
-1. تحليل أرقام التفاعل
-2. تقدير الوصول الفعلي
-3. تحليل جودة التفاعل
-4. مستوى التأثير على الرأي العام
-5. تقييم عام لقوة الحساب
+**درجة التأثير:**
+- [مرتفع / متوسط / منخفض]
 
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"الحساب حقق تفاعل كبير في تغريدة عن فلسطين بأكثر من 50 ألف إعجاب [الإثبات: https://twitter.com/username/status/123456789]."
+**أبرز المواضيع:**
+- [موضوع 1]
+- [موضوع 2]
+- [موضوع 3]
 
-**القواعد الإلزامية:**
-- عند ذكر تغريدات ذات تفاعل عالي، حط روابطها
-- الرابط: [الإثبات: رابط التغريدة الكامل]
+**نوع الجمهور:**
+- [وصف مختصر]
 
-اكتب بأسلوب تحليلي واضح. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
+**التقييم السريع:**
+- [نقطة 1]
+- [نقطة 2]
+- [نقطة 3]
+
+الرد بالعربية. نقاط مختصرة فقط."""
+            content = generate_ai_section(gemini, section_key, prompt, 5000)
             
-        elif section_key == "political":
-            prompt = f"""أنت محلل سياسي خبير. حلل التوجهات السياسية حق الحساب @{username}.
+        elif section_key == "what_people_say":
+            prompt = f"""أنت محلل محتوى. حلل ماذا يقول الناس.
 
-التغريدات مع روابطها:
-{evidence_text}
+التغريدات مع الروابط:
+{evidence_text[:3000]}
 
-المطلوب - اكتب قسماً كاملاً (700-1000 كلمة) يتضمن:
+المطلوب - أجب بهذا التنسيق بالضبط:
 
-1. التوجه السياسي العام
-2. الموقف من القضايا الكبرى (فلسطين، سوريا، اليمن، ليبيا)
-3. هل يتبنى خطاباً معيناً
-4. الميول الأيديولوجية الواضحة
-5. تحليل الخطاب السياسي العام
+**👍 الإيجابيات:**
 
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"الحساب يتبنى خطاباً إسلامياً واضحاً [الإثبات: https://twitter.com/username/status/123456789]، ويدعم الثورات العربية [الإثبات: https://twitter.com/username/status/987654321]."
+**نقطة إيجابية #1:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
 
-**القواعد الإلزامية:**
-- كل موقف سياسي لازم يكون معاه رابط إثبات
-- عند الحديث عن قضايا محددة، حط 3-5 روابط
-- الرابط: [الإثبات: رابط التغريدة الكامل]
+**نقطة إيجابية #2:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
 
-كن دقيقاً وموضوعياً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 10000)
+**نقطة إيجابية #3:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+**👎 السلبيات:**
+
+**نقطة سلبية #1:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+**نقطة سلبية #2:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+**نقطة سلبية #3:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+**💬 ملاحظات متكررة:**
+
+**ملاحظة #1:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+**ملاحظة #2:** [وصف مختصر]
+- الدليل:
+  🔗 [رابط كامل من البيانات]
+
+مهم جداً:
+- كل نقطة في سطر منفصل
+- كل رابط في سطر منفصل
+- لا تضع أكثر من رابط في سطر واحد
+- استخدم الروابط الفعلية من البيانات
+
+الرد بالعربية. نقاط واضحة مع روابط منفصلة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
             
-        elif section_key == "mb_links":
-            prompt = f"""أنت محلل أمني متخصص في رصد التنظيمات. حلل بدقة عالية أي ارتباطات بجماعة الإخوان المسلمين.
+        elif section_key == "complaints_issues":
+            prompt = f"""أنت خبير تحليل شكاوى. حدد الشكاوى الرئيسية.
 
-التغريدات مع روابطها:
-{evidence_text}
+البيانات:
+{evidence_text[:3000]}
 
-المطلوب - اكتب قسماً كاملاً (800-1200 كلمة) يتضمن:
+المطلوب - أجب بهذا التنسيق بالضبط:
 
-1. البحث عن المؤشرات المباشرة
-2. المؤشرات غير المباشرة
-3. تحليل المؤسسات والمنصات
-4. التقييم الكمي
-5. تحليل الخطاب
-6. التصنيف النهائي
+**الشكوى #1: [العنوان]**
+- الوصف: [مختصر]
+- التكرار: [عدد المرات]
+- الأدلة:
+  🔗 [رابط 1]
+  🔗 [رابط 2]
 
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"المؤشرات المباشرة:
-الحساب يدافع بشكل صريح عن جماعة الإخوان [الإثبات: https://twitter.com/username/status/123456789]، ويهاجم الحكومة المصرية [الإثبات: https://twitter.com/username/status/987654321]."
+**الشكوى #2: [العنوان]**
+- الوصف: [مختصر]
+- التكرار: [عدد المرات]
+- الأدلة:
+  🔗 [رابط 1]
+  🔗 [رابط 2]
 
-**القواعد الإلزامية:**
-- كل مؤشر لازم يكون معاه 2-3 روابط إثبات
-- الرابط: [الإثبات: رابط التغريدة الكامل]
+**الشكوى #3: [العنوان]**
+- الوصف: [مختصر]
+- التكرار: [عدد المرات]
+- الأدلة:
+  🔗 [رابط 1]
+  🔗 [رابط 2]
 
-كن دقيقاً وموضوعياً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 12000)
+**التقييم:**
+- الأخطر: [أي شكوى ولماذا]
+- الأسهل للحل: [أي شكوى]
+
+مهم جداً:
+- كل رابط في سطر منفصل
+- لا تضع الروابط بين قوسين
+- لا تضع (تغريدة 1، 2، 3)
+- ضع كل رابط كامل في سطر
+
+الرد بالعربية. روابط واضحة منفصلة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
             
-        elif section_key == "electronic_army":
-            if df_comments is None or df_comments.empty:
-                content = "ما فيه بيانات تعليقات كافية حق إجراء التحليل."
-            else:
-                total_comments = len(df_comments)
-                unique_commenters = df_comments['commenter_username'].nunique()
-                diversity_ratio = (unique_commenters/total_comments*100) if total_comments > 0 else 0
-                
-                top_commenters = df_comments['commenter_username'].value_counts().head(30)
-                heavy_commenters = len(top_commenters[top_commenters > 10])
-                top_commenters_text = '\n'.join([f"- @{user}: {count} تعليق" for user, count in top_commenters.items()])
-                
-                comments_evidence = df_comments.head(50)
-                comments_evidence_text = "\n\n".join([
-                    f"المعلق: @{row['commenter_username']}\nالتعليق: {row['comment_text'][:100]}\nالرابط: {row['comment_url']}"
-                    for _, row in comments_evidence.iterrows()
-                ])
-                
-                prompt = f"""أنت خبير أمن سيبراني متخصص في كشف الجيوش الإلكترونية. حلل بدقة أنماط التعليقات على حساب @{username}.
+        elif section_key == "why_they_say":
+            prompt = f"""أنت محلل سلوكي. اشرح أسباب الآراء.
 
-البيانات الإحصائية:
-- إجمالي التعليقات: {total_comments:,}
-- عدد المعلقين الفريدين: {unique_commenters:,}
-- نسبة التنوع: {diversity_ratio:.2f}%
-- المعلقين الكثيفين (>10 تعليقات): {heavy_commenters}
+المطلوب - أجب بهذا التنسيق بالضبط:
 
-أكثر 30 معلقاً نشاطاً:
-{top_commenters_text}
+**السبب #1: [عنوان السبب]**
+- الشرح: [وصف مختصر]
+- التأثير: [كيف يؤثر]
 
-عينة من التعليقات مع روابطها:
-{comments_evidence_text}
+**السبب #2: [عنوان السبب]**
+- الشرح: [وصف مختصر]
+- التأثير: [كيف يؤثر]
 
-المطلوب - اكتب قسماً كاملاً (800-1200 كلمة) يتضمن التحليل الكامل مع الأدلة.
+**السبب #3: [عنوان السبب]**
+- الشرح: [وصف مختصر]
+- التأثير: [كيف يؤثر]
 
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"الحساب @user123 علق 45 مرة في أسبوع واحد [الإثبات: https://twitter.com/username/status/123456789]، والتعليقات كلها تدعم نفس الموقف [الإثبات: https://twitter.com/username/status/987654321]."
+**الخلاصة:**
+- [نقطة رئيسية 1]
+- [نقطة رئيسية 2]
+- [نقطة رئيسية 3]
 
-**القواعد الإلزامية:**
-- كل مؤشر لازم يكون معاه 3-5 روابط تعليقات
-- الرابط: [الإثبات: رابط التعليق الكامل]
-
-كن دقيقاً ومفصلاً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-                content = generate_ai_section(mistral, section_key, prompt, 12000)
-                
-        elif section_key == "comments_content":
-            if df_comments is None or df_comments.empty:
-                content = "ما فيه بيانات تعليقات."
-            else:
-                # استخراج جميع التعليقات - Mistral يحدد الإماراتية منها
-                all_comments_with_urls = []
-                for idx, row in df_comments.head(100).iterrows():
-                    all_comments_with_urls.append({
-                        'commenter': row['commenter_username'],
-                        'text': row['comment_text'][:200],
-                        'url': row['comment_url']
-                    })
-                
-                comments_evidence_text = "\n\n".join([
-                    f"التعليق رقم {i+1}:\nالمعلق: @{c['commenter']}\nالنص: {c['text']}\nالرابط: {c['url']}"
-                    for i, c in enumerate(all_comments_with_urls)
-                ])
-                
-                prompt = f"""أنت محلل محتوى. حلل التعليقات على تغريدات @{username} وركز على الإمارات.
-
-جميع التعليقات مع روابطها (أنت حدد اللي متعلق بالإمارات):
-{comments_evidence_text}
-
-إجمالي التعليقات: {len(df_comments):,}
-
-**مهمتك:**
-1. **اقرأ جميع التعليقات** وحدد أنت اللي فيها كلام عن الإمارات
-2. **احسب كم تعليق** من الـ {len(df_comments):,} يتكلم عن الإمارات
-3. **احسب النسبة المئوية**
-4. **حلل المشاعر**: إيجابي/سلبي/محايد/معادي
-5. **المواضيع الإماراتية في التعليقات**
-6. **النبرة العامة**
-7. **هل فيه خطاب تحريضي**
-8. **التقييم الأمني**
-
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"أغلب التعليقات المتعلقة بالإمارات تحمل نبرة سلبية. أحد المعلقين يتهم الإمارات بدعم الانقلابات [الإثبات: https://twitter.com/username/status/123456789]."
-
-**القواعد الإلزامية:**
-- **أنت حدد** التعليقات الإماراتية من خلال قراءة المحتوى
-- كل تحليل لازم يكون معاه 5-10 روابط تعليقات داعمة
-- الرابط: [الإثبات: رابط التعليق الكامل]
-
-كن موضوعياً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية.
-
-اكتب قسماً كاملاً (700-1000 كلمة)."""
-                content = generate_ai_section(mistral, section_key, prompt, 12000)
-        
-        elif section_key == "critical_questions":
-            all_previous_analysis = ""
-            for prev_key, prev_title, _ in sections[:-1]:
-                if prev_key in st.session_state.ai_report_cache:
-                    all_previous_analysis += f"\n\n=== {prev_title} ===\n{st.session_state.ai_report_cache[prev_key][:1500]}"
+الرد بالعربية. نقاط مختصرة."""
+            content = generate_ai_section(gemini, section_key, prompt, 7000)
             
-            prompt = f"""أنت محلل استخباراتي كبير متخصص في التحليل العميق للشخصيات المؤثرة. بناءً على جميع التحليلات السابقة للحساب @{username}، أجب على الأسئلة الحرجة التالية بعمق ودقة.
+        elif section_key == "how_to_improve":
+            prompt = f"""أنت مستشار سمعة. قدم حلول مختصرة وواضحة.
 
-جميع التحليلات السابقة:
-{all_previous_analysis}
+المطلوب - أجب بهذا التنسيق بالضبط:
 
-التغريدات مع روابطها:
-{evidence_text[:5000]}
+**⚡ قصيرة المدى (تنفذ خلال أيام):**
 
-المطلوب - اكتب تحليلاً عميقاً (1500-2000 كلمة) يجيب على الأسئلة التالية مع أدلة كاملة:
+**الحل #1:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم يوم]
 
-**السؤال الأول: شو هي الارتباطات غير المعلنة حق الحساب؟**
-**السؤال الثاني: شو هي الأجندات السياسية غير المعلنة؟**
-**السؤال الثالث: هل كان فيه نقطة محورية في تغيير التوجه؟**
-**السؤال الرابع: هل الشخصية ممولة؟**
-**السؤال الخامس: هل الشخصية تابعة لمنظومة؟ وشو دورها؟**
-**السؤال السادس: شو علاقة كل هالنقاط ببعضها؟**
-**السؤال السابع: شو سبب التغيير في التوجه؟ ومن يوقف وراءه؟**
+**الحل #2:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم يوم]
 
-**مهم جداً - طريقة كتابة روابط الإثبات:**
-"السؤال الأول: الارتباطات غير المعلنة
+**الحل #3:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم يوم]
 
-ارتباطات بجماعة الإخوان المسلمين:
-الحساب يدافع بشكل صريح عن الجماعة [الإثبات: https://twitter.com/username/status/123456789]، ويهاجم الدول المحاربة لها [الإثبات: https://twitter.com/username/status/987654321]."
+**📅 متوسطة المدى (تنفذ خلال أسابيع):**
 
-**القواعد الإلزامية:**
-- كل إجابة لازم تكون معاها 10-15 رابط إثبات على الأقل
-- كل ادعاء لازم يكون معاه دليل
-- الرابط: [الإثبات: رابط التغريدة الكامل]
-- استخدم الروابط الفعلية من التغريدات
+**الحل #1:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم أسبوع]
 
-اعتمد على الأدلة الفعلية. كن دقيقاً وموضوعياً ومهنياً. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
+**الحل #2:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم أسبوع]
+
+**الحل #3:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم أسبوع]
+
+**🎯 طويلة المدى (تنفذ خلال أشهر):**
+
+**الحل #1:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم شهر]
+
+**الحل #2:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم شهر]
+
+**الحل #3:** [عنوان الحل]
+- الوصف: [كيف تنفذه]
+- المدة: [كم شهر]
+
+**الأولوية:**
+- ابدأ بـ: [الحل الأهم]
+- السبب: [لماذا]
+
+الرد بالعربية. نقاط عملية واضحة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
             
-            content = generate_ai_section(mistral, section_key, prompt, 15000)
-        
-        # عرض القسم مع تحويل الروابط لـ hyperlinks
-        display_report_section(section_title, content)
+        elif section_key == "positive_opportunities":
+            prompt = f"""أنت خبير فرص. حدد الفرص الإيجابية.
+
+البيانات:
+{evidence_text[:2000]}
+
+المطلوب - أجب بهذا التنسيق بالضبط:
+
+**💎 موضوعات ناجحة:**
+
+**موضوع #1:** [اسم الموضوع]
+- التفاعل: [رقم]
+- السبب: [لماذا ينجح]
+
+**موضوع #2:** [اسم الموضوع]
+- التفاعل: [رقم]
+- السبب: [لماذا ينجح]
+
+**موضوع #3:** [اسم الموضوع]
+- التفاعل: [رقم]
+- السبب: [لماذا ينجح]
+
+**📈 محتوى يعزز الولاء:**
+
+**نوع محتوى #1:** [النوع]
+- لماذا ينجح: [السبب]
+
+**نوع محتوى #2:** [النوع]
+- لماذا ينجح: [السبب]
+
+**🧩 جمهور جديد:**
+
+**شريحة #1:** [اسم الشريحة]
+- كيفية الوصول: [الطريقة]
+
+**شريحة #2:** [اسم الشريحة]
+- كيفية الوصول: [الطريقة]
+
+**💬 مؤيدون مؤثرون:**
+
+**حساب #1:** @[اسم الحساب]
+- نوع التفاعل: [وصف]
+
+**حساب #2:** @[اسم الحساب]
+- نوع التفاعل: [وصف]
+
+**خطة الاستفادة:**
+- [خطوة 1]
+- [خطوة 2]
+- [خطوة 3]
+
+الرد بالعربية. نقاط واضحة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
+            
+        elif section_key == "evidence_examples":
+            prompt = f"""أنت محلل أدلة. قدم أمثلة حقيقية مع روابط منفصلة.
+
+التغريدات:
+{evidence_text[:3000]}
+
+المطلوب - أجب بهذا التنسيق بالضبط:
+
+**مثال #1: [عنوان المثال]**
+- الاقتباس: "[نص التغريدة - مختصر]"
+- التحليل: [ماذا يعني هذا]
+- الدليل:
+  🔗 [رابط التغريدة الكامل]
+
+**مثال #2: [عنوان المثال]**
+- الاقتباس: "[نص التغريدة - مختصر]"
+- التحليل: [ماذا يعني هذا]
+- الدليل:
+  🔗 [رابط التغريدة الكامل]
+
+**مثال #3: [عنوان المثال]**
+- الاقتباس: "[نص التغريدة - مختصر]"
+- التحليل: [ماذا يعني هذا]
+- الدليل:
+  🔗 [رابط التغريدة الكامل]
+
+**مثال #4: [عنوان المثال]**
+- الاقتباس: "[نص التغريدة - مختصر]"
+- التحليل: [ماذا يعني هذا]
+- الدليل:
+  🔗 [رابط التغريدة الكامل]
+
+**مثال #5: [عنوان المثال]**
+- الاقتباس: "[نص التغريدة - مختصر]"
+- التحليل: [ماذا يعني هذا]
+- الدليل:
+  🔗 [رابط التغريدة الكامل]
+
+**الخلاصة:**
+- [نقطة رئيسية 1]
+- [نقطة رئيسية 2]
+- [نقطة رئيسية 3]
+
+مهم جداً:
+- كل رابط يجب أن يكون في سطر منفصل
+- لا تضع (تغريدة 1، 2، 3)
+- لا تجمع الروابط في سطر واحد
+- استخدم الروابط الفعلية من البيانات
+
+الرد بالعربية. روابط واضحة ومنفصلة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
+            
+        elif section_key == "monitoring_metrics":
+            prompt = f"""أنت خبير مؤشرات. حدد مؤشرات المتابعة.
+
+المطلوب - أجب بهذا التنسيق بالضبط:
+
+**📊 مؤشر #1: [اسم المؤشر]**
+- كيفية القياس: [الطريقة]
+- تردد القياس: [يومي/أسبوعي/شهري]
+- الهدف المطلوب: [رقم أو نسبة]
+
+**📊 مؤشر #2: [اسم المؤشر]**
+- كيفية القياس: [الطريقة]
+- تردد القياس: [يومي/أسبوعي/شهري]
+- الهدف المطلوب: [رقم أو نسبة]
+
+**📊 مؤشر #3: [اسم المؤشر]**
+- كيفية القياس: [الطريقة]
+- تردد القياس: [يومي/أسبوعي/شهري]
+- الهدف المطلوب: [رقم أو نسبة]
+
+**📊 مؤشر #4: [اسم المؤشر]**
+- كيفية القياس: [الطريقة]
+- تردد القياس: [يومي/أسبوعي/شهري]
+- الهدف المطلوب: [رقم أو نسبة]
+
+**📊 مؤشر #5: [اسم المؤشر]**
+- كيفية القياس: [الطريقة]
+- تردد القياس: [يومي/أسبوعي/شهري]
+- الهدف المطلوب: [رقم أو نسبة]
+
+**معايير النجاح:**
+- [معيار 1]
+- [معيار 2]
+- [معيار 3]
+
+**تنبيهات (إشارات خطر):**
+- [تنبيه 1]
+- [تنبيه 2]
+- [تنبيه 3]
+
+الرد بالعربية. نقاط واضحة."""
+            content = generate_ai_section(gemini, section_key, prompt, 8000)
+        # عرض القسم مع تحويل الروابط لـ hyperlinks (Accordion style)
+        display_report_section(section_title, content, section_key)
         time.sleep(1)
     
     progress_bar.progress(100)
     status_text.success("✅ تم إنشاء التقرير التفصيلي بنجاح!")
 
-def ai_summary_report_page():
-    """صفحة ملخص التقرير الذكي"""
-    if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
-        st.info("📊 لازم تنشئ التقرير التفصيلي أول")
-        return
-    
-    required_sections = ["news_sources", "network", "main_topics", "uae_content", "influence", 
-                        "political", "mb_links", "electronic_army", "comments_content", "critical_questions"]
-    
-    missing_sections = [s for s in required_sections if s not in st.session_state.ai_report_cache]
-    
-    if missing_sections:
-        st.warning("⚠️ لازم تنشئ التقرير التفصيلي أول قبل ما تشوف الملخص")
-        st.info("روح لتبويب 'التقرير التفصيلي' وانشئ التقرير أول")
-        return
-    
-    data = st.session_state['extracted_data']
-    df_tweets = data.get('tweets')
-    df_comments = data.get('comments')
-    username = data.get('username', 'User')
-    
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
-    
-    previous_sections = {}
-    sections_list = [
-        ("news_sources", "المصادر الإخبارية المعتمدة"),
-        ("network", "الشبكة الاجتماعية والتفاعلات"),
-        ("main_topics", "القضايا والموضوعات الرئيسية"),
-        ("uae_content", "المحتوى المتعلق بدولة الإمارات"),
-        ("influence", "التأثير على وسائل التواصل"),
-        ("political", "التوجهات السياسية العامة"),
-        ("mb_links", "الارتباطات بجماعة الإخوان"),
-        ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة"),
-        ("comments_content", "تحليل التعليقات والنقاشات"),
-        ("critical_questions", "التحليل العميق - الأسئلة الحرجة"),
-    ]
-    
-    for section_key, section_title in sections_list:
-        if section_key in st.session_state.ai_report_cache:
-            previous_sections[section_title] = st.session_state.ai_report_cache[section_key]
-    
-    sections_summary = "\n\n".join([
-        f"=== {title} ===\n{content[:1200]}..."
-        for title, content in previous_sections.items()
-    ])
-    
-    total_likes = int(df_tweets['likes'].sum())
-    total_retweets = int(df_tweets['retweets'].sum())
-    total_replies = int(df_tweets['replies'].sum())
-    total_engagement = total_likes + total_retweets + total_replies
-    avg_engagement = int(total_engagement / len(df_tweets)) if len(df_tweets) > 0 else 0
-    
-    with st.spinner("عم ننشئ الملخص الذكي..."):
-        prompt = f"""أنت محلل استراتيجي كبير. اكتب ملخصاً تنفيذياً شاملاً ومركزاً لحساب @{username} بناءً على التقرير التفصيلي.
-
-حجم العينة المحللة:
-- إجمالي التغريدات: {len(df_tweets):,}
-- إجمالي التعليقات: {len(df_comments) if df_comments is not None else 0:,}
-- إجمالي الإعجابات: {total_likes:,}
-- إجمالي إعادة التغريد: {total_retweets:,}
-- إجمالي الردود: {total_replies:,}
-- متوسط التفاعل لكل تغريدة: {avg_engagement:,}
-
-نتائج التحليل من جميع الأقسام السابقة:
-{sections_summary}
-
-المطلوب - اكتب ملخصاً تنفيذياً شاملاً (1500-2000 كلمة) يتضمن:
-
-**القسم الأول: الملخص التنفيذي**
-**القسم الثاني: المصادر الإخبارية**
-**القسم الثالث: الشبكة الاجتماعية**
-**القسم الرابع: القضايا الرئيسية**
-**القسم الخامس: المحتوى المتعلق بالإمارات**
-**القسم السادس: التأثير والوصول**
-**القسم السابع: التوجهات السياسية**
-**القسم الثامن: الارتباطات بالإخوان**
-**القسم التاسع: الجيوش الإلكترونية**
-**القسم العاشر: التعليقات**
-**القسم الحادي عشر: الأسئلة الحرجة**
-**القسم الثاني عشر: التقييم النهائي والتوصيات**
-
-كن دقيقاً وموضوعياً. استخدم الأرقام. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-        
-        summary_content = generate_ai_section(mistral, "summary_conclusion", prompt, 12000)
-        
-        display_report_section("📋 الملخص التنفيذي الشامل", summary_content)
-        
-        st.success("✅ تم إنشاء الملخص الذكي بنجاح!")
 # ============================================================
 # DASHBOARD PAGE - COMPLETE WITH ALL CHARTS
 # ============================================================
@@ -1924,7 +2179,7 @@ def dashboard_page():
             else:
                 st.markdown("""
                 <div style="text-align: center;">
-                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; margin: 0 auto; border: 3px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; margin: 0 auto; border: 3px solid #f0f0f0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                         👤
                     </div>
                 </div>
@@ -1949,7 +2204,7 @@ def dashboard_page():
         with stats_col2:
             st.markdown(f"""
             <div style="text-align: center;">
-                <div style="font-size: 1.8rem; font-weight: 700; color: #667eea;">{profile['Following Count']:,}</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #1976D2;">{profile['Following Count']:,}</div>
                 <div style="color: #888; font-size: 0.85rem;">Following</div>
             </div>
             """, unsafe_allow_html=True)
@@ -2027,7 +2282,7 @@ def dashboard_page():
             labels=['Original Posts', 'Replies', 'Comments Received'],
             values=[posts_count, replies_count, comments_count],
             hole=0.4,
-            marker=dict(colors=['#ff6b6b', '#667eea', '#00cc88']),
+            marker=dict(colors=['#ff6b6b', '#1976D2', '#4CAF50']),
             textinfo='label+percent',
             textposition='auto',
             hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
@@ -2188,14 +2443,14 @@ def dashboard_page():
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**💬 Posts vs Replies**")
-        fig_replies = create_metric_comparison_chart(df_tweets, 'Replies', '#667eea')
+        fig_replies = create_metric_comparison_chart(df_tweets, 'Replies', '#1976D2')
         if fig_replies:
             st.plotly_chart(fig_replies, use_container_width=True)
             total_replies = df_tweets['replies'].sum()
             avg_replies = df_tweets['replies'].mean()
             best_post_replies = df_tweets['replies'].max()
             st.markdown(f"""
-            <div style="background: #f3e5f5; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #667eea; margin-top: 0.5rem;">
+            <div style="background: #E3F2FD; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #1976D2; margin-top: 0.5rem;">
                 <p style="margin: 0; color: #4a148c; font-size: 0.85rem;">
                     💬 <strong>{total_replies:,} total replies</strong> | Avg: {avg_replies:.0f} per post | Best: {best_post_replies:,}<br>
                     {"🎯 Great conversation starter!" if avg_replies > 5 else "💡 Try asking questions to boost replies!"}
@@ -2540,8 +2795,8 @@ def main():
         st.markdown("""
         <style>
         [data-testid="column"]:nth-child(2) button {
-            background: linear-gradient(135deg, #667eea 0%, #564ba2 100%) !important;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3) !important;
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+            box-shadow: 0 8px 20px rgba(25, 118, 210, 0.3) !important;
         }
         [data-testid="column"]:nth-child(2) button:hover {
             box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
@@ -2549,10 +2804,18 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        # Header Section
+        # Header Section with Logo and Text
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
-            st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style='display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem 0; padding: 0;'>
+                <div style='font-size: 2.5rem; line-height: 1;'>🎯</div>
+                <div>
+                    <h3 style='margin: 0; padding: 0; font-size: 1.5rem; font-weight: 800; color: #212121;'>Reputation Agent</h3>
+                    <p style='margin: 0; padding: 0; font-size: 0.85rem; color: #888; font-weight: 500;'>AI-Powered Social Media Analytics</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         with col2:
             if st.button("Start Extraction", type="primary", use_container_width=True, key="main_extraction_btn"):
                 show_extraction_modal()
@@ -2561,8 +2824,8 @@ def main():
                 st.session_state.clear()
                 st.rerun()
         
-        # Main Tabs - 3 tabs on the same level
-        tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "📄 Detailed Report", "📋 AI Summary"])
+        # Main Tabs - 2 tabs
+        tab1, tab2 = st.tabs(["📊 Dashboard", "📄 Detailed Report"])
         
         # ============================================================
         # TAB 1: DASHBOARD
@@ -2584,11 +2847,18 @@ def main():
                 
                 # Header for Detailed Report
                 st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📄 Detailed Report with Evidence Links</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive and detailed analysis of @{username} with direct links to supporting tweets
+                <div style="background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); padding: 2.5rem; border-radius: 24px; margin-bottom: 2.5rem; box-shadow: 0 10px 40px rgba(25, 118, 210, 0.3);">
+                    <h1 style="color: white; margin: 0; font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">🎯 تقرير إدارة السمعة الشامل</h1>
+                    <h2 style="color: rgba(255,255,255,0.95); margin: 0; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">Reputation Management Report</h2>
+                    <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 1rem; line-height: 1.8;">
+                        تحليل شامل لسمعة الحساب @{username} على تويتر/إكس<br>
+                        يتضمن ما يقوله الناس، الشكاوى، الأسباب، والحلول العملية لتحسين الصورة العامة
                     </p>
+                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 12px; margin-top: 1.5rem;">
+                        <p style="color: white; margin: 0; font-size: 0.9rem;">
+                            <strong>🎯 الهدف:</strong> تحويل البيانات إلى خطة عمل واضحة لتحسين السمعة وبناء علاقة أقوى مع الجمهور
+                        </p>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -2601,16 +2871,14 @@ def main():
                 with col2:
                     # Check if report has been generated
                     sections_list = [
-                        ("introduction", "Introduction"),
-                        ("news_sources", "News Sources Analysis"),
-                        ("network", "Social Network & Interactions"),
-                        ("main_topics", "Main Topics & Issues"),
-                        ("uae_content", "UAE-Related Content"),
-                        ("influence", "Influence & Reach"),
-                        ("political", "Political Orientation"),
-                        ("mb_links", "Muslim Brotherhood Links"),
-                        ("electronic_army", "Electronic Army Detection"),
-                        ("comments_content", "Comments Analysis"),
+                        ("introduction", "🧭 Executive Summary"),
+                        ("what_people_say", "💬 What People Say About Account"),
+                        ("complaints_issues", "😟 Complaints & Criticism Points"),
+                        ("why_they_say", "🧠 Analysis of Public Opinion Reasons"),
+                        ("how_to_improve", "💡 How to Improve Image & Impression"),
+                        ("positive_opportunities", "🚀 Positive Opportunities to Invest"),
+                        ("evidence_examples", "🧩 Examples & Evidence-Based Analysis"),
+                        ("monitoring_metrics", "📊 Monitoring & Evaluation Metrics"),
                     ]
                     
                     # Check if at least one section exists
@@ -2648,67 +2916,6 @@ Report Type: Detailed Report with Evidence Links
                         )
                     else:
                         st.info("ℹ️ Generate the report above first, then you can download it here.")
-        
-        # ============================================================
-        # TAB 3: AI SUMMARY
-        # ============================================================
-        with tab3:
-            if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
-                st.info("📊 Please extract data first from the Dashboard section")
-                if st.button("Extract Data", type="primary", key="extract_summary"):
-                    show_extraction_modal()
-            else:
-                data = st.session_state['extracted_data']
-                username = data.get('username', 'User')
-                
-                # Header for AI Summary
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #00cc88 0%, #00aa70 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📋 AI Report Summary</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive executive summary of all detailed analysis results for @{username}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Generate Summary Report
-                ai_summary_report_page()
-                
-                # Download Button for Summary
-                if "summary_conclusion" in st.session_state.ai_report_cache:
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        summary_report = f"""
-AI Report Summary - Twitter Account
-Account: @{username}
-Analysis Date: {datetime.now().strftime('%d %B %Y - %H:%M')}
-Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if data.get('comments') is not None else 0:,} comments
-
-{'='*60}
-Executive Summary
-{'='*60}
-
-{st.session_state.ai_report_cache.get('summary_conclusion', '')}
-
-{'='*60}
-Report ID: SUMMARY-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
-Issue Date: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
-Report Type: AI Executive Summary
-{'='*60}
-"""
-                        
-                        filename = f"Summary_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                        st.download_button(
-                            label="💾 Download AI Summary",
-                            data=summary_report.encode('utf-8'),
-                            file_name=filename,
-                            mime="text/plain",
-                            use_container_width=True,
-                            type="primary"
-                        )
-                else:
-                    st.info("ℹ️ Generate the summary above first, then you can download it here.")
             
     except Exception as e:
         st.error("An error occurred")
