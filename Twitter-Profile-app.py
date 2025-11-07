@@ -1345,11 +1345,10 @@ def ai_detailed_report_page():
     
     mistral = MistralAnalyzer(MISTRAL_API_KEY)
     
-    # استخراج جميع التعليقات مع روابطها
-    comments_evidence = df_comments.head(200)
+    # استخراج جميع التعليقات مع روابطها (بدون حدود)
     evidence_text = "\n\n".join([
-        f"التعليق رقم {i+1}:\nالمعلق: @{row['commenter_username']}\nالنص: {row['comment_text'][:250]}\nالرابط: {row['comment_url']}"
-        for i, row in comments_evidence.iterrows()
+        f"التعليق رقم {i+1}:\nالمعلق: @{row['commenter_username']}\nالنص: {row['comment_text']}\nالرابط: {row['comment_url']}"
+        for i, row in df_comments.iterrows()
     ])
     
     progress_bar = st.progress(0)
@@ -1378,8 +1377,8 @@ def ai_detailed_report_page():
 - إجمالي التعليقات المحللة: {comments_count:,}
 - عدد المعلقين: {unique_commenters:,}
 
-التعليقات مع روابطها:
-{evidence_text[:10000]}
+التعليقات مع روابطها (جميع التعليقات المتاحة):
+{evidence_text}
 
 المطلوب - اكتب ملخص تنفيذي شامل (500-700 كلمة) يتضمن:
 
@@ -1404,7 +1403,7 @@ def ai_detailed_report_page():
         elif section_key == "pros_cons":
             prompt = f"""أنت محلل سمعة رقمية خبير متخصص في تحليل الإيجابيات والسلبيات. حلل حساب @{username} بناءً على التعليقات فقط.
 
-التعليقات مع روابطها:
+التعليقات مع روابطها (جميع التعليقات المتاحة):
 {evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (700-1000 كلمة) يتضمن:
@@ -1443,7 +1442,7 @@ def ai_detailed_report_page():
             
             prompt = f"""أنت محلل سمعة رقمية متخصص في تصنيف الشكاوى وتقييم تأثيرها. حلل الشكاوى والمشاكل في حساب @{username} بناءً على التعليقات فقط.
 
-التعليقات مع روابطها:
+التعليقات مع روابطها (جميع التعليقات المتاحة):
 {evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (800-1200 كلمة) يتضمن:
@@ -1498,8 +1497,8 @@ def ai_detailed_report_page():
 التحليلات السابقة:
 {all_previous_analysis}
 
-التعليقات مع روابطها:
-{evidence_text[:12000]}
+التعليقات مع روابطها (جميع التعليقات المتاحة):
+{evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (1000-1500 كلمة) يتضمن تحليلاً عميقاً للأسباب خلف رأي الجمهور (Insights):
 
