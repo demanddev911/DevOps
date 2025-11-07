@@ -1436,6 +1436,46 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
     else:
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
+def convert_table_to_html(table_rows, border_color="#667eea"):
+    """Convert markdown table rows to HTML table"""
+    if not table_rows or len(table_rows) < 1:
+        return ""
+    
+    # Parse rows
+    rows = []
+    for row in table_rows:
+        cells = [cell.strip() for cell in row.split('|')]
+        cells = [c for c in cells if c]  # Remove empty cells
+        if cells:
+            rows.append(cells)
+    
+    if not rows:
+        return ""
+    
+    # Build HTML table
+    html = '<div style="margin: 25px 0; overflow-x: auto;">'
+    html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">'
+    
+    # Header row
+    html += '<thead><tr>'
+    for cell in rows[0]:
+        html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; font-weight: 700; text-align: right; font-size: 1.05rem; border: none;">{cell}</th>'
+    html += '</tr></thead>'
+    
+    # Body rows
+    if len(rows) > 1:
+        html += '<tbody>'
+        for i, row in enumerate(rows[1:]):
+            bg = '#f8fafc' if i % 2 == 0 else 'white'
+            html += f'<tr style="background: {bg};">'
+            for cell in row:
+                html += f'<td style="padding: 16px; border: 1px solid #e5e7eb; text-align: right; vertical-align: top; line-height: 1.8;">{cell}</td>'
+            html += '</tr>'
+        html += '</tbody>'
+    
+    html += '</table></div>'
+    return html
+
 def display_report_section(title: str, content: str, section_type: str = "default"):
     """عرض القسم بتصميم بسيط ونظيف وجميل"""
     import re
@@ -1456,43 +1496,68 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link, content)
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
     
+    # Section colors - define first
+    if section_type == "executive_summary":
+        icon = "📋"
+        border_color = "#3b82f6"
+        bg_color = "#f0f9ff"
+    elif section_type == "pros_cons":
+        icon = "⚖️"
+        border_color = "#8b5cf6"
+        bg_color = "#faf5ff"
+    elif section_type == "complaints":
+        icon = "💬"
+        border_color = "#ef4444"
+        bg_color = "#fef2f2"
+    elif section_type == "insights":
+        icon = "💡"
+        border_color = "#10b981"
+        bg_color = "#f0fdf4"
+    else:
+        icon = "📊"
+        border_color = "#3b82f6"
+        bg_color = "#f8fafc"
+    
     # Remove markdown formatting
     content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
     content = content.replace('*', '')
     content = re.sub(r'^#+\s+', '', content, flags=re.MULTILINE)
     content = re.sub(r'\n#+\s+', '\n', content)
     
+    # Convert markdown tables to HTML tables
+    lines = content.split('\n')
+    processed_lines = []
+    in_table = False
+    table_rows = []
+    
+    for line in lines:
+        if '|' in line and line.strip().startswith('|'):
+            # This is a table row
+            if '---' in line:  # Skip separator line
+                continue
+            if not in_table:
+                in_table = True
+                table_rows = []
+            table_rows.append(line)
+        else:
+            # Not a table row
+            if in_table:
+                # Process accumulated table
+                processed_lines.append(convert_table_to_html(table_rows, border_color))
+                in_table = False
+                table_rows = []
+            processed_lines.append(line)
+    
+    # Handle table at end
+    if in_table and table_rows:
+        processed_lines.append(convert_table_to_html(table_rows, border_color))
+    
+    content = '\n'.join(processed_lines)
+    
     # Convert to HTML with simple formatting
     content = content.replace('\n\n', '</p><p>')
     content = f'<p>{content}</p>'
     content = content.replace('\n', '<br>')
-    
-    # Section colors
-    if section_type == "executive_summary":
-        icon = "📋"
-        border_color = "#3b82f6"
-        bg_color = "#f0f9ff"
-        text_color = "#1e293b"
-    elif section_type == "pros_cons":
-        icon = "⚖️"
-        border_color = "#8b5cf6"
-        bg_color = "#faf5ff"
-        text_color = "#1e293b"
-    elif section_type == "complaints":
-        icon = "💬"
-        border_color = "#ef4444"
-        bg_color = "#fef2f2"
-        text_color = "#1e293b"
-    elif section_type == "insights":
-        icon = "💡"
-        border_color = "#10b981"
-        bg_color = "#f0fdf4"
-        text_color = "#1e293b"
-    else:
-        icon = "📊"
-        border_color = "#3b82f6"
-        bg_color = "#f8fafc"
-        text_color = "#1e293b"
     
     st.markdown(f"""
     <style>
