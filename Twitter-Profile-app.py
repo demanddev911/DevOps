@@ -1507,6 +1507,14 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
     
+    # Remove placeholder link texts like [رابط التعليق 1], [رابط تعليق 2], etc.
+    content = re.sub(r'\[رابط\s+[^\]]+\]', '', content)
+    content = re.sub(r'\[link\s+[^\]]+\]', '', content, flags=re.IGNORECASE)
+    
+    # Clean up bullet points with empty content after removing links
+    content = re.sub(r'•\s*\n', '', content)
+    content = re.sub(r'•\s*<br>\s*<br>', '<br>', content)
+    
     # Section colors - light and simple
     if section_type == "executive_summary":
         icon = "📋"
