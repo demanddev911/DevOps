@@ -213,17 +213,18 @@ st.markdown("""
     }
     
     /* ============================================================
-       BUTTONS
+       BUTTONS - 3-COLOR SYSTEM (NO SHADOWS)
     ============================================================ */
+    /* Default Buttons - Green */
     .stButton button {
-        background: #1976D2;
+        background: #00cc88;
         color: white;
         border: none;
         padding: 0.85rem 2rem;
         border-radius: 50px;
         font-weight: 700;
         font-size: 0.9rem;
-        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.35);
+        box-shadow: none;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         letter-spacing: 0.03em;
         cursor: pointer;
@@ -231,13 +232,39 @@ st.markdown("""
     }
     
     .stButton button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 40px rgba(25, 118, 210, 0.45);
-        background: #1565C0;
+        transform: translateY(-2px);
+        box-shadow: none;
+        background: #00b377;
     }
     
     .stButton button:active {
-        transform: translateY(-1px);
+        transform: translateY(0px);
+    }
+    
+    /* Primary Buttons - Blue */
+    .stButton button[kind="primary"],
+    button[data-testid="baseButton-primary"] {
+        background: #1976d2 !important;
+        box-shadow: none !important;
+    }
+    
+    .stButton button[kind="primary"]:hover,
+    button[data-testid="baseButton-primary"]:hover {
+        background: #1565c0 !important;
+        box-shadow: none !important;
+    }
+    
+    /* Secondary Buttons - Red */
+    .stButton button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
+        background: #ff6b6b !important;
+        box-shadow: none !important;
+    }
+    
+    .stButton button[kind="secondary"]:hover,
+    button[data-testid="baseButton-secondary"]:hover {
+        background: #e85555 !important;
+        box-shadow: none !important;
     }
     
     /* Button container spacing */
