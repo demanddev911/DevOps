@@ -1343,6 +1343,122 @@ def ai_detailed_report_page():
         st.warning("ما فيه تعليقات متوفرة حق التحليل. لازم تستخرج التعليقات أولاً من قسم لوحة التحكم.")
         return
     
+    # ============================================================
+    # DATE FILTER SECTION
+    # ============================================================
+    st.markdown("### 📅 تحديد نطاق التاريخ للتقرير")
+    st.markdown("---")
+    
+    # Parse dates in dataframes if not already parsed
+    if 'parsed_date' not in df_tweets.columns:
+        df_tweets = process_dataframe_for_analysis(df_tweets.copy())
+    if 'parsed_date' not in df_comments.columns:
+        df_comments_temp = df_comments.copy()
+        if 'comment_date' in df_comments_temp.columns:
+            df_comments_temp['created_at'] = df_comments_temp['comment_date']
+            df_comments_temp = process_dataframe_for_analysis(df_comments_temp)
+            df_comments = df_comments_temp
+    
+    # Get min and max dates from the data
+    try:
+        min_tweet_date = df_tweets['parsed_date'].min()
+        max_tweet_date = df_tweets['parsed_date'].max()
+        min_comment_date = df_comments['parsed_date'].min() if 'parsed_date' in df_comments.columns else min_tweet_date
+        max_comment_date = df_comments['parsed_date'].max() if 'parsed_date' in df_comments.columns else max_tweet_date
+        
+        overall_min_date = min(min_tweet_date, min_comment_date)
+        overall_max_date = max(max_tweet_date, max_comment_date)
+        
+        # Convert to date objects for the date picker
+        default_start_date = overall_min_date.date() if pd.notna(overall_min_date) else datetime.now().date()
+        default_end_date = overall_max_date.date() if pd.notna(overall_max_date) else datetime.now().date()
+    except Exception as e:
+        # Fallback to current date if parsing fails
+        default_start_date = datetime.now().date()
+        default_end_date = datetime.now().date()
+    
+    # Create date filter UI
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        start_date = st.date_input(
+            "📆 تاريخ البداية (من)",
+            value=default_start_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ البداية لنطاق التقرير",
+            key="report_start_date"
+        )
+    
+    with col2:
+        end_date = st.date_input(
+            "📆 تاريخ النهاية (إلى)",
+            value=default_end_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ النهاية لنطاق التقرير",
+            key="report_end_date"
+        )
+    
+    # Validation
+    date_validation_error = None
+    if start_date and end_date:
+        if start_date > end_date:
+            date_validation_error = "❌ خطأ: تاريخ البداية يجب أن يكون قبل أو مساوٍ لتاريخ النهاية"
+    else:
+        date_validation_error = "❌ خطأ: يجب اختيار كلا التاريخين"
+    
+    # Display validation error
+    if date_validation_error:
+        st.error(date_validation_error)
+        st.stop()
+    
+    # Display date range summary
+    st.info(f"📊 **نطاق التقرير:** سيتم تضمين البيانات من **{start_date.strftime('%Y-%m-%d')}** إلى **{end_date.strftime('%Y-%m-%d')}**")
+    
+    # Filter data based on date range
+    start_datetime = pd.Timestamp(start_date)
+    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)  # End of day
+    
+    # Filter tweets
+    df_tweets_filtered = df_tweets[
+        (df_tweets['parsed_date'] >= start_datetime) & 
+        (df_tweets['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Filter comments
+    df_comments_filtered = df_comments[
+        (df_comments['parsed_date'] >= start_datetime) & 
+        (df_comments['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Check if filtered data is empty
+    if df_comments_filtered.empty:
+        st.warning(f"⚠️ لا توجد تعليقات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.")
+        st.stop()
+    
+    # Display filtered data statistics
+    st.success(f"✅ تم تصفية البيانات بنجاح: **{len(df_tweets_filtered):,}** منشور و **{len(df_comments_filtered):,}** تعليق")
+    
+    # Generate Report Button
+    st.markdown("---")
+    generate_button = st.button(
+        "🚀 إنشاء التقرير التفصيلي",
+        type="primary",
+        use_container_width=True,
+        key="generate_detailed_report_btn"
+    )
+    
+    if not generate_button:
+        st.info("👆 اضغط على الزر أعلاه لإنشاء التقرير التفصيلي للفترة المحددة")
+        return
+    
+    # Use filtered data for report generation
+    df_comments = df_comments_filtered
+    df_tweets = df_tweets_filtered
+    
+    st.markdown("---")
+    
     mistral = MistralAnalyzer(MISTRAL_API_KEY)
     
     # استخراج جميع التعليقات مع روابطها (بدون حدود)
@@ -1361,6 +1477,14 @@ def ai_detailed_report_page():
         ("public_opinion_insights", "أسباب خلف رأي الجمهور (Insight)", 90),
     ]
     
+    # Date range info for AI prompts
+    date_range_info = f"""
+نطاق التحليل الزمني:
+- تاريخ البداية: {start_date.strftime('%Y-%m-%d')}
+- تاريخ النهاية: {end_date.strftime('%Y-%m-%d')}
+- مدة التحليل: {(end_date - start_date).days + 1} يوم
+"""
+    
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
         status_text.info(f"عم ننشئ: {section_title}...")
         progress_bar.progress(progress_val)
@@ -1376,6 +1500,8 @@ def ai_detailed_report_page():
 - اسم المستخدم: @{username}
 - إجمالي التعليقات المحللة: {comments_count:,}
 - عدد المعلقين: {unique_commenters:,}
+
+{date_range_info}
 
 التعليقات مع روابطها (جميع التعليقات المتاحة):
 {evidence_text}
@@ -1402,6 +1528,8 @@ def ai_detailed_report_page():
             
         elif section_key == "pros_cons":
             prompt = f"""أنت محلل سمعة رقمية خبير متخصص في تحليل الإيجابيات والسلبيات. حلل حساب @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
 
 التعليقات مع روابطها (جميع التعليقات المتاحة):
 {evidence_text}
@@ -1443,6 +1571,8 @@ def ai_detailed_report_page():
         elif section_key == "complaints_classification":
             
             prompt = f"""أنت محلل سمعة رقمية متخصص في تصنيف الشكاوى وتقييم تأثيرها. حلل الشكاوى والمشاكل في حساب @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
 
 التعليقات مع روابطها (جميع التعليقات المتاحة):
 {evidence_text}
@@ -1495,6 +1625,8 @@ def ai_detailed_report_page():
                     all_previous_analysis += f"\n\n=== {prev_title} ===\n{st.session_state.ai_report_cache[prev_key][:1000]}"
             
             prompt = f"""أنت محلل استراتيجي خبير في فهم الرأي العام والدوافع النفسية. حلل الأسباب العميقة خلف رأي الجمهور حول @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
 
 التحليلات السابقة:
 {all_previous_analysis}
