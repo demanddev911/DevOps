@@ -2655,10 +2655,18 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        # Header Section
+        # Header Section with Logo and Text
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
-            st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>Reputation Agent</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style='display: flex; align-items: center; gap: 1rem; margin: 0 0 1rem 0; padding: 0;'>
+                <div style='font-size: 2.5rem; line-height: 1;'>🎯</div>
+                <div>
+                    <h3 style='margin: 0; padding: 0; font-size: 1.5rem; font-weight: 800; color: #1a202c;'>Reputation Agent</h3>
+                    <p style='margin: 0; padding: 0; font-size: 0.85rem; color: #888; font-weight: 500;'>AI-Powered Social Media Analytics</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         with col2:
             if st.button("Start Extraction", type="primary", use_container_width=True, key="main_extraction_btn"):
                 show_extraction_modal()
