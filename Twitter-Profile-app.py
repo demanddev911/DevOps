@@ -664,8 +664,8 @@ st.markdown("""
     .reasoning-content strong,
     .reasoning-content b {
         color: #111827;
-        font-weight: 700;
-        font-size: 1rem;
+        font-weight: 800;
+        font-size: 1.05rem;
         direction: rtl;
         font-family: 'Cairo', sans-serif !important;
     }
@@ -697,34 +697,34 @@ st.markdown("""
         margin: 0.5rem 0;
     }
     
-    /* Hierarchical Typography - Consistent and Clean */
+    /* Hierarchical Typography - Big and Bold */
     .reasoning-content h1 {
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 2.25rem;
+        font-weight: 900;
         color: #111827;
         margin: 1.5rem 0 0.75rem 0;
-        line-height: 1.4;
+        line-height: 1.3;
         font-family: 'Cairo', sans-serif !important;
         direction: rtl;
         text-align: right;
-        border-bottom: 2px solid #E5E7EB;
-        padding-bottom: 0.5rem;
+        border-bottom: 3px solid #1976D2;
+        padding-bottom: 0.75rem;
     }
     
     .reasoning-content h2 {
-        font-size: 1.25rem;
-        font-weight: 700;
+        font-size: 1.65rem;
+        font-weight: 800;
         color: #1F2937;
         margin: 1.25rem 0 0.5rem 0;
-        line-height: 1.5;
+        line-height: 1.4;
         font-family: 'Cairo', sans-serif !important;
         direction: rtl;
         text-align: right;
     }
     
     .reasoning-content h3 {
-        font-size: 1.1rem;
-        font-weight: 600;
+        font-size: 1.25rem;
+        font-weight: 700;
         color: #374151;
         margin: 1rem 0 0.4rem 0;
         font-family: 'Cairo', sans-serif !important;
