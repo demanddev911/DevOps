@@ -432,6 +432,17 @@ st.markdown("""
     
     .accordion-content {
         padding: 2rem;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .accordion-content p,
+    .accordion-content div,
+    .accordion-content ul,
+    .accordion-content li {
+        direction: rtl;
+        text-align: right;
+        font-family: 'Cairo', sans-serif;
     }
     
     .selected-answer-box {
@@ -440,6 +451,8 @@ st.markdown("""
         padding: 1.25rem 1.5rem;
         margin-bottom: 1.5rem;
         border-right: 4px solid #4CAF50;
+        direction: rtl;
+        text-align: right;
     }
     
     .selected-answer-title {
@@ -450,6 +463,8 @@ st.markdown("""
         font-family: 'Cairo', sans-serif;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        direction: rtl;
+        text-align: right;
     }
     
     .selected-answer-text {
@@ -457,7 +472,16 @@ st.markdown("""
         font-weight: 600;
         color: #2E7D32;
         font-family: 'Cairo', sans-serif;
-        line-height: 1.6;
+        line-height: 1.8;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .selected-answer-text p,
+    .selected-answer-text div {
+        direction: rtl;
+        text-align: right;
+        line-height: 1.8;
     }
     
     .reasoning-box {
@@ -465,6 +489,8 @@ st.markdown("""
         border-radius: 10px;
         padding: 1.5rem;
         border-right: 4px solid #F57C00;
+        direction: rtl;
+        text-align: right;
     }
     
     .reasoning-title {
@@ -478,6 +504,8 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        direction: rtl;
+        text-align: right;
     }
     
     .reasoning-content {
@@ -485,26 +513,117 @@ st.markdown("""
         line-height: 2;
         color: #212121;
         font-family: 'Cairo', sans-serif;
-        text-align: justify;
+        text-align: right;
+        direction: rtl;
     }
     
     .reasoning-content a {
         color: #1976D2;
         text-decoration: none;
         font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: rgba(25, 118, 210, 0.08);
-        transition: all 0.3s ease;
-        display: inline-block;
-        margin: 0 4px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 8px;
+        border: 2px solid #90CAF9;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
+        font-size: 0.95rem;
+        direction: ltr;
     }
     
     .reasoning-content a:hover {
         color: white;
-        background: #1976D2;
+        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+        box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+        border-color: #1976D2;
+    }
+    
+    .reasoning-content a::before {
+        content: '🔗';
+        font-size: 1.1rem;
+    }
+    
+    /* Evidence Link Styling - Beautiful Twitter Links */
+    .evidence-link {
+        color: #1976D2 !important;
+        text-decoration: none !important;
+        font-weight: 700 !important;
+        padding: 10px 20px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin: 6px 10px !important;
+        border: 2px solid #90CAF9 !important;
+        box-shadow: 0 3px 10px rgba(25, 118, 210, 0.2) !important;
+        font-size: 0.95rem !important;
+        font-family: 'Cairo', sans-serif !important;
+        direction: rtl !important;
+    }
+    
+    .evidence-link::before {
+        content: '🔗' !important;
+        font-size: 1.2rem !important;
+    }
+    
+    .evidence-link:hover {
+        color: white !important;
+        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 20px rgba(25, 118, 210, 0.5) !important;
+        border-color: #1976D2 !important;
+    }
+    
+    .evidence-link:active {
+        transform: translateY(-1px) scale(1.02) !important;
+    }
+    
+    /* Evidence links in lists */
+    .reasoning-content ul li,
+    .reasoning-content ol li {
+        margin: 12px 0;
+        line-height: 2.2;
+    }
+    
+    /* Ensure proper spacing around evidence links */
+    .reasoning-content br + a.evidence-link,
+    .reasoning-content p + a.evidence-link {
+        display: inline-flex !important;
+        margin-top: 8px !important;
+    }
+    
+    /* Better paragraph spacing with Arabic text */
+    .reasoning-content p {
+        margin-bottom: 1.2rem;
+        line-height: 2;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    /* Headlines and emphasis in Arabic */
+    .reasoning-content strong,
+    .reasoning-content b {
+        color: #1976D2;
+        font-weight: 800;
+        direction: rtl;
+    }
+    
+    .reasoning-content h1,
+    .reasoning-content h2,
+    .reasoning-content h3,
+    .reasoning-content h4 {
+        direction: rtl;
+        text-align: right;
+        margin: 1.5rem 0 1rem 0;
+        color: #212121;
+        font-family: 'Cairo', sans-serif;
     }
     
     /* ============================================================
@@ -1625,23 +1744,33 @@ def display_report_section(title: str, content: str, section_id: str):
     """
     import re
     
-    # Convert evidence links to clickable hyperlinks
+    # Convert evidence links to clickable hyperlinks with beautiful styling
     def make_link_clickable(match):
         url = match.group(1).strip()
         if not url.startswith('http'):
             return match.group(0)
-        return f'<a href="{url}" target="_blank">🔗 دليل</a>'
+        return f'<a href="{url}" target="_blank" class="evidence-link">عرض الدليل</a>'
     
     def make_proof_link_clickable(match):
         url = match.group(1).strip()
         if not url.startswith('http'):
             return match.group(0)
-        display_url = url if len(url) < 50 else url[:47] + '...'
-        return f'<a href="{url}" target="_blank">🔗 {display_url}</a>'
+        # Extract tweet ID if it's a Twitter link
+        tweet_id = ''
+        if 'twitter.com' in url or 'x.com' in url:
+            parts = url.split('/')
+            if 'status' in parts:
+                idx = parts.index('status')
+                if idx + 1 < len(parts):
+                    tweet_id = parts[idx + 1].split('?')[0][:8]
+        
+        display_text = f'تغريدة {tweet_id}' if tweet_id else 'عرض الدليل'
+        return f'<a href="{url}" target="_blank" class="evidence-link">{display_text}</a>'
     
     # Apply link patterns
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
-    content = re.sub(r'دليل:\s*(https?://\S+)', make_proof_link_clickable, content)
+    content = re.sub(r'[- ]*الدليل:\s*(https?://\S+)', make_proof_link_clickable, content)
+    content = re.sub(r'[- ]*دليل:\s*(https?://\S+)', make_proof_link_clickable, content)
     content = re.sub(r'🔗\s*(https?://\S+)', make_proof_link_clickable, content)
     
     # Split content into summary and detailed analysis (if applicable)
