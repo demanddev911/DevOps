@@ -1795,6 +1795,143 @@ def dashboard_page():
         
         st.markdown("<br>", unsafe_allow_html=True)
     
+    # ============================================================
+    # DATE FILTERING SECTION
+    # ============================================================
+    st.markdown('<div class="section-header">🗓️ Date Filters</div>', unsafe_allow_html=True)
+    
+    # Create columns for filter controls
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns([2, 2, 2, 2])
+    
+    # Get date range from the data
+    if 'parsed_date' in df_tweets.columns:
+        min_date = df_tweets['parsed_date'].min().date() if df_tweets['parsed_date'].notna().any() else datetime.now().date()
+        max_date = df_tweets['parsed_date'].max().date() if df_tweets['parsed_date'].notna().any() else datetime.now().date()
+    elif 'date' in df_tweets.columns:
+        min_date = pd.to_datetime(df_tweets['date'].min()).date()
+        max_date = pd.to_datetime(df_tweets['date'].max()).date()
+    else:
+        min_date = datetime.now().date()
+        max_date = datetime.now().date()
+    
+    with filter_col1:
+        filter_type = st.selectbox(
+            "Filter by:",
+            ["Post Date", "Comments Date"],
+            key="date_filter_type"
+        )
+    
+    with filter_col2:
+        start_date = st.date_input(
+            "Start Date",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+            key="start_date_filter"
+        )
+    
+    with filter_col3:
+        end_date = st.date_input(
+            "End Date",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+            key="end_date_filter"
+        )
+    
+    with filter_col4:
+        apply_filter = st.button("Apply Filter", type="primary", use_container_width=True, key="apply_date_filter")
+    
+    # Apply filtering based on user selection
+    if 'date_filter_applied' not in st.session_state:
+        st.session_state.date_filter_applied = False
+        st.session_state.filtered_start_date = start_date
+        st.session_state.filtered_end_date = end_date
+        st.session_state.filtered_type = filter_type
+    
+    if apply_filter:
+        st.session_state.date_filter_applied = True
+        st.session_state.filtered_start_date = start_date
+        st.session_state.filtered_end_date = end_date
+        st.session_state.filtered_type = filter_type
+    
+    # Create filtered dataframes
+    df_tweets_filtered = df_tweets.copy()
+    df_comments_filtered = df_comments.copy() if df_comments is not None and not df_comments.empty else pd.DataFrame()
+    
+    if st.session_state.date_filter_applied:
+        start = pd.to_datetime(st.session_state.filtered_start_date)
+        end = pd.to_datetime(st.session_state.filtered_end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+        
+        if st.session_state.filtered_type == "Post Date":
+            # Filter tweets by post date
+            if 'parsed_date' in df_tweets_filtered.columns:
+                df_tweets_filtered = df_tweets_filtered[
+                    (df_tweets_filtered['parsed_date'] >= start) & 
+                    (df_tweets_filtered['parsed_date'] <= end)
+                ]
+            elif 'date' in df_tweets_filtered.columns:
+                df_tweets_filtered['date_datetime'] = pd.to_datetime(df_tweets_filtered['date'])
+                df_tweets_filtered = df_tweets_filtered[
+                    (df_tweets_filtered['date_datetime'] >= start) & 
+                    (df_tweets_filtered['date_datetime'] <= end)
+                ]
+            
+            # Show filtered info
+            st.markdown(f"""
+            <div style="background: #e3f2fd; padding: 0.75rem 1.25rem; border-radius: 12px; margin: 1rem 0; border-left: 3px solid #2196f3;">
+                <span style="color: #1565c0; font-weight: 600;">
+                    ✓ Filtered by Post Date: {st.session_state.filtered_start_date} to {st.session_state.filtered_end_date} 
+                    | {len(df_tweets_filtered)} posts found
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        else:  # Comments Date
+            # Filter comments by date and then filter tweets that have those comments
+            if not df_comments_filtered.empty and 'created_at' in df_comments_filtered.columns:
+                # Parse comment dates
+                df_comments_filtered['parsed_comment_date'] = pd.to_datetime(
+                    df_comments_filtered['created_at'], 
+                    format='%a %b %d %H:%M:%S %z %Y', 
+                    errors='coerce'
+                )
+                
+                # Filter comments by date range
+                df_comments_filtered = df_comments_filtered[
+                    (df_comments_filtered['parsed_comment_date'] >= start) & 
+                    (df_comments_filtered['parsed_comment_date'] <= end)
+                ]
+                
+                # Filter tweets to only those that received comments in this date range
+                if not df_comments_filtered.empty:
+                    filtered_tweet_ids = df_comments_filtered['original_tweet_id'].unique()
+                    df_tweets_filtered = df_tweets_filtered[df_tweets_filtered['tweet_id'].isin(filtered_tweet_ids)]
+                else:
+                    df_tweets_filtered = pd.DataFrame()
+                
+                # Show filtered info
+                st.markdown(f"""
+                <div style="background: #e3f2fd; padding: 0.75rem 1.25rem; border-radius: 12px; margin: 1rem 0; border-left: 3px solid #2196f3;">
+                    <span style="color: #1565c0; font-weight: 600;">
+                        ✓ Filtered by Comments Date: {st.session_state.filtered_start_date} to {st.session_state.filtered_end_date} 
+                        | {len(df_comments_filtered)} comments found on {len(df_tweets_filtered)} posts
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ No comments data available for filtering by comments date")
+    
+    # Add reset filter button
+    if st.session_state.date_filter_applied:
+        if st.button("Reset Filter", key="reset_date_filter"):
+            st.session_state.date_filter_applied = False
+            st.rerun()
+    
+    # Use filtered dataframes for all visualizations below
+    df_tweets = df_tweets_filtered
+    df_comments = df_comments_filtered
+    
     st.markdown('<div class="section-header">Overview Statistics</div>', unsafe_allow_html=True)
     
     col1, col2, col3, col4, col5 = st.columns(5)
