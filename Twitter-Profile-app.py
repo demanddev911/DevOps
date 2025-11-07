@@ -428,7 +428,7 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         line-height: 1.8;
         font-size: 0.9375rem;
-        color: #334155;
+        color: #000000;
         font-family: 'Cairo', sans-serif !important;
     }
     
@@ -450,21 +450,21 @@ st.markdown("""
     
     .main li {
         margin-bottom: 12px;
-        color: #475569;
+        color: #000000;
         font-size: 1rem;
         font-family: 'Cairo', sans-serif !important;
     }
     
     .main strong {
         font-weight: 700;
-        color: #0f172a;
+        color: #000000;
         font-family: 'Cairo', sans-serif !important;
     }
     
     .main p {
         line-height: 2.1;
         margin-bottom: 18px;
-        color: #1e293b;
+        color: #000000;
         font-size: 1.125rem;
         font-weight: 400;
         font-family: 'Cairo', sans-serif !important;
@@ -475,7 +475,7 @@ st.markdown("""
     .main div[style*="direction: rtl"] p {
         font-size: 1.125rem;
         line-height: 2.1;
-        color: #1e293b;
+        color: #000000;
         margin-bottom: 18px;
         font-family: 'Cairo', sans-serif !important;
     }
@@ -1504,7 +1504,7 @@ def convert_table_to_html(table_rows, border_color="#3b82f6"):
             bg = "#f8fafc" if i % 2 == 0 else "white"
             html += f'<tr style="background: {bg};">'
             for j, cell in enumerate(row):
-                html += f'<td style="padding: 16px 20px; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #e5e7eb; font-family: \'Cairo\', sans-serif; direction: rtl; color: #334155;">{cell}</td>'
+                html += f'<td style="padding: 16px 20px; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #e5e7eb; font-family: \'Cairo\', sans-serif; direction: rtl; color: #000000;">{cell}</td>'
             html += '</tr>'
         html += '</tbody>'
     
@@ -1518,26 +1518,29 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     # Clean content
     content = content.replace('\r\n', '\n').replace('\r', '\n')
     
-    # Convert ALL raw URLs to clickable links (don't show full URL)
-    def convert_raw_url(match):
-        url = match.group(0)
-        # Extract tweet ID or username for display
-        if 'twitter.com' in url or 'x.com' in url:
-            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 عرض التغريدة</a>'
-        else:
-            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 رابط</a>'
-    
-    # Convert raw URLs (bullet points with URLs)
-    content = re.sub(r'•\s*(https?://[^\s<]+)', r'• \1', content)
-    content = re.sub(r'https?://[^\s<]+', convert_raw_url, content)
-    
-    # Convert [text](url) format
+    # Convert [text](url) format FIRST
     def make_markdown_link(match):
         text = match.group(1)
         url = match.group(2)
         return f'<a href="{url}" target="_blank" class="evidence-link">{text}</a>'
     
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
+    
+    # Convert ALL raw URLs to clickable links (don't show full URL)
+    # Make sure we don't convert URLs that are already inside href attributes
+    def convert_raw_url(match):
+        url = match.group(0)
+        # Check if this URL is already inside an href attribute
+        if 'href="' + url in content or 'href=\'' + url in content:
+            return url  # Don't convert, already a link
+        # Extract tweet ID or username for display
+        if 'twitter.com' in url or 'x.com' in url:
+            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 عرض التغريدة</a>'
+        else:
+            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 رابط</a>'
+    
+    # Convert raw URLs that are NOT already in links
+    content = re.sub(r'(?<!href=["\'])https?://[^\s<>\)]+(?!["\'])', convert_raw_url, content)
     
     # Remove placeholder link texts like [رابط التعليق 1], [رابط تعليق 2], etc.
     content = re.sub(r'\[رابط\s+[^\]]+\]', '', content)
@@ -1632,6 +1635,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             direction: rtl;
             text-align: right;
             font-family: 'Cairo', sans-serif !important;
+            color: #000000;
         }}
         .report-content strong {{
             font-weight: 700;
@@ -1649,6 +1653,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             text-align: right;
             margin-bottom: 10px;
             font-family: 'Cairo', sans-serif !important;
+            color: #000000;
         }}
     </style>
     
@@ -1681,7 +1686,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
             padding: 35px;
             line-height: 1.9;
             font-size: 1.0625rem;
-            color: #334155;
+            color: #000000;
             font-family: 'Cairo', sans-serif;
             direction: rtl;
             text-align: right;
@@ -1775,14 +1780,14 @@ def ai_detailed_report_page():
             margin: 0 0 12px 0; 
             font-weight: 700;
             direction: rtl;
-            color: #1e293b;
+            color: #000000;
         ">📊 تقرير التحليل التفصيلي</h1>
         <h2 style="
             font-size: 1.25rem; 
             margin: 0 0 20px 0; 
             font-weight: 600;
             direction: rtl;
-            color: #64748b;
+            color: #000000;
         ">حساب تويتر: @{username}</h2>
         <div style="
             display: flex;
@@ -1795,7 +1800,7 @@ def ai_detailed_report_page():
                 <p style="
                     font-size: 0.875rem; 
                     margin: 0 0 5px 0;
-                    color: #64748b;
+                    color: #666666;
                     direction: rtl;
                 ">📅 تاريخ التحليل</p>
                 <p style="
@@ -1803,14 +1808,14 @@ def ai_detailed_report_page():
                     margin: 0;
                     font-weight: 600;
                     direction: rtl;
-                    color: #1e293b;
+                    color: #000000;
                 ">{current_time}</p>
             </div>
             <div>
                 <p style="
                     font-size: 0.875rem; 
                     margin: 0 0 5px 0;
-                    color: #64748b;
+                    color: #666666;
                     direction: rtl;
                 ">📈 حجم العينة</p>
                 <p style="
@@ -1818,7 +1823,7 @@ def ai_detailed_report_page():
                     margin: 0;
                     font-weight: 600;
                     direction: rtl;
-                    color: #1e293b;
+                    color: #000000;
                 ">{len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
             </div>
         </div>
@@ -1837,7 +1842,7 @@ def ai_detailed_report_page():
         border-right: 5px solid #10b981;
     ">
         <h2 style="
-            color: #1e293b;
+            color: #000000;
             margin: 0;
             font-weight: 700;
             font-size: 1.375rem;
