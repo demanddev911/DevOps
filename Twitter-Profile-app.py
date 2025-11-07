@@ -493,9 +493,13 @@ st.markdown("""
         border-radius: 8px;
         padding: 1.75rem;
         border: 1px solid #E5E7EB;
-        direction: rtl;
-        text-align: right;
+        direction: rtl !important;
+        text-align: right !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    
+    .reasoning-box * {
+        direction: rtl !important;
     }
     
     .reasoning-title {
@@ -516,12 +520,23 @@ st.markdown("""
     }
     
     .reasoning-content {
-        font-size: 0.95rem;
-        line-height: 1.9;
+        font-size: 1rem;
+        line-height: 2;
         color: #374151;
         font-family: 'Cairo', 'Inter', sans-serif;
-        text-align: right;
-        direction: rtl;
+        text-align: right !important;
+        direction: rtl !important;
+    }
+    
+    .reasoning-content *:not(a) {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    .reasoning-content div,
+    .reasoning-content span {
+        direction: rtl !important;
+        text-align: right !important;
     }
     
     .reasoning-content a {
@@ -600,6 +615,16 @@ st.markdown("""
         margin: 10px 0;
         line-height: 2;
         padding-right: 8px;
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    .reasoning-content ul,
+    .reasoning-content ol {
+        direction: rtl !important;
+        text-align: right !important;
+        padding-right: 20px !important;
+        padding-left: 0 !important;
     }
     
     /* Ensure proper spacing around evidence links */
@@ -612,16 +637,18 @@ st.markdown("""
     /* Better paragraph spacing with Arabic text */
     .reasoning-content p {
         margin-bottom: 1rem;
-        line-height: 1.9;
-        direction: rtl;
-        text-align: right;
+        line-height: 2;
+        direction: rtl !important;
+        text-align: right !important;
+        font-size: 1rem;
     }
     
     /* Headlines and emphasis in Arabic */
     .reasoning-content strong,
     .reasoning-content b {
-        color: #212121;
-        font-weight: 700;
+        color: #111827;
+        font-weight: 800;
+        font-size: 1.1rem;
         direction: rtl;
     }
     
@@ -650,31 +677,39 @@ st.markdown("""
         direction: rtl;
     }
     
-    /* Hierarchical Typography */
+    /* Hierarchical Typography - Much Bigger and Bolder */
     .reasoning-content h1 {
-        font-size: 1.5rem;
-        font-weight: 800;
+        font-size: 2rem;
+        font-weight: 900;
         color: #111827;
-        margin: 1.75rem 0 0.75rem 0;
+        margin: 2rem 0 1rem 0;
         line-height: 1.3;
         font-family: 'Cairo', sans-serif;
+        direction: rtl;
+        text-align: right;
+        border-bottom: 2px solid #E5E7EB;
+        padding-bottom: 0.75rem;
     }
     
     .reasoning-content h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1F2937;
+        margin: 1.5rem 0 0.75rem 0;
+        line-height: 1.4;
+        font-family: 'Cairo', sans-serif;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .reasoning-content h3 {
         font-size: 1.15rem;
         font-weight: 700;
         color: #374151;
         margin: 1.25rem 0 0.5rem 0;
-        line-height: 1.4;
         font-family: 'Cairo', sans-serif;
-    }
-    
-    .reasoning-content h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #4B5563;
-        margin: 1rem 0 0.4rem 0;
-        font-family: 'Cairo', sans-serif;
+        direction: rtl;
+        text-align: right;
     }
     
     /* ============================================================
