@@ -206,7 +206,7 @@ st.markdown("""
     .report-content {
         font-size: 1rem;
         line-height: 2;
-        color: #2d3748;
+        color: #000000;
         font-family: 'Cairo', sans-serif;
         text-align: justify;
     }
@@ -497,7 +497,7 @@ st.markdown("""
     .main h1, .main h2, .main h3, .main h4 {
         font-family: 'Cairo', sans-serif !important;
         font-weight: 700;
-        color: #0f172a;
+        color: #000000;
         margin-top: 1.5em;
         margin-bottom: 0.75em;
         line-height: 1.4;
@@ -528,12 +528,12 @@ st.markdown("""
     /* Better text selection */
     ::selection {
         background-color: #93c5fd;
-        color: #1e293b;
+        color: #000000;
     }
     
     ::-moz-selection {
         background-color: #93c5fd;
-        color: #1e293b;
+        color: #000000;
     }
     
     /* Date input styling */
@@ -1639,7 +1639,7 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         }}
         .report-content strong {{
             font-weight: 700;
-            color: {title_color};
+            color: #000000;
             font-family: 'Cairo', sans-serif !important;
         }}
         .report-content ul, .report-content ol {{
@@ -1800,7 +1800,7 @@ def ai_detailed_report_page():
                 <p style="
                     font-size: 0.875rem; 
                     margin: 0 0 5px 0;
-                    color: #666666;
+                    color: #000000;
                     direction: rtl;
                 ">📅 تاريخ التحليل</p>
                 <p style="
@@ -1815,7 +1815,7 @@ def ai_detailed_report_page():
                 <p style="
                     font-size: 0.875rem; 
                     margin: 0 0 5px 0;
-                    color: #666666;
+                    color: #000000;
                     direction: rtl;
                 ">📈 حجم العينة</p>
                 <p style="
@@ -1869,7 +1869,7 @@ def ai_detailed_report_page():
         <p style="
             direction: rtl; 
             margin-bottom: 12px; 
-            color: #1e293b; 
+            color: #000000; 
             font-weight: 700;
             font-size: 1rem;
             font-family: 'Cairo', sans-serif;
@@ -1891,7 +1891,7 @@ def ai_detailed_report_page():
         <p style="
             direction: rtl; 
             margin-bottom: 12px; 
-            color: #1e293b; 
+            color: #000000; 
             font-weight: 700;
             font-size: 1rem;
             font-family: 'Cairo', sans-serif;
