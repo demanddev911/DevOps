@@ -597,6 +597,55 @@ class TwitterExtractor:
             seen_cursors.add(cursor)
 
         return all_items
+    
+    def _paginate_tweets_no_filter(self, user_id: str, username: str, endpoint_path: str,
+                         tweet_type: str, max_pages: int = 300, target_count: int = 5000,
+                         progress_callback=None) -> List[Dict]:
+        """Generic pagination method without date filtering (for comment extraction)"""
+        all_items = []
+        cursor = None
+        page = 0
+        consecutive_empty_pages = 0
+        seen_cursors = set()
+
+        while len(all_items) < target_count and page < max_pages:
+            page += 1
+            endpoint = f"{endpoint_path}?user={user_id}&count=100" + (f"&cursor={cursor}" if cursor else "")
+            data = self.api.call(endpoint)
+
+            if data.get('error') or 'result' not in data:
+                consecutive_empty_pages += 1
+                if consecutive_empty_pages >= 5:
+                    break
+                continue
+
+            page_items = self._parse_tweets(data, username, tweet_type)
+
+            if not page_items:
+                consecutive_empty_pages += 1
+                if consecutive_empty_pages >= 5:
+                    break
+                next_cursor = self._extract_cursor(data)
+                if next_cursor and next_cursor != cursor and next_cursor not in seen_cursors:
+                    cursor = next_cursor
+                    seen_cursors.add(cursor)
+                    continue
+                else:
+                    break
+
+            consecutive_empty_pages = 0
+            all_items.extend(page_items)
+
+            if progress_callback and page % 5 == 0:
+                label = "Posts" if tweet_type == 'post' else "Replies"
+                progress_callback(f"{label}: {len(all_items)} collected (page {page})")
+
+            cursor = self._extract_cursor(data)
+            if not cursor or cursor in seen_cursors:
+                break
+            seen_cursors.add(cursor)
+
+        return all_items
 
     def get_user_posts_paginated(self, user_id: str, username: str, start_date, end_date, max_pages: int = 300, progress_callback=None) -> List[Dict]:
         """Fetch user posts with pagination, filtered by date range"""
@@ -605,6 +654,10 @@ class TwitterExtractor:
     def get_user_replies_paginated(self, user_id: str, username: str, start_date, end_date, max_pages: int = 300, progress_callback=None) -> List[Dict]:
         """Fetch user replies with pagination, filtered by date range"""
         return self._paginate_tweets(user_id, username, "/user-replies", 'reply', start_date, end_date, max_pages, progress_callback)
+    
+    def get_user_posts_paginated_no_filter(self, user_id: str, username: str, max_pages: int = 300, progress_callback=None) -> List[Dict]:
+        """Fetch user posts with pagination, without date filtering (for comment extraction)"""
+        return self._paginate_tweets_no_filter(user_id, username, "/user-tweets", 'post', max_pages, progress_callback)
 
     def _extract_cursor(self, data: Dict) -> Optional[str]:
         try:
@@ -1231,11 +1284,35 @@ def run_extraction(username, start_date, end_date, max_pages, fetch_comments, ma
         replies = extractor.get_user_replies_paginated(user_info['user_id'], username, start_date, end_date, max_pages, progress_callback=update_progress)
         progress_bar.progress(66)
         comments = []
-        if fetch_comments and posts:
-            status_placeholder.info("Extracting comments (this may take a while)...")
-            comments = extractor.get_all_comments_parallel(posts, username, max_tweets=max_tweets_for_comments,
-                                                           comments_per_tweet=comments_per_tweet, max_workers=MAX_COMMENT_WORKERS,
-                                                           progress_callback=update_progress)
+        if fetch_comments:
+            # Fetch all posts (without date filtering) to get comments
+            # This allows us to get comments in the date range even if posts don't exist in that range
+            if not posts:
+                status_placeholder.info("No posts in date range, fetching all posts to check for comments...")
+                all_posts_for_comments = extractor.get_user_posts_paginated_no_filter(user_info['user_id'], username, max_pages, progress_callback=update_progress)
+            else:
+                all_posts_for_comments = posts
+            
+            if all_posts_for_comments:
+                status_placeholder.info("Extracting comments (this may take a while)...")
+                all_comments = extractor.get_all_comments_parallel(all_posts_for_comments, username, max_tweets=max_tweets_for_comments,
+                                                               comments_per_tweet=comments_per_tweet, max_workers=MAX_COMMENT_WORKERS,
+                                                               progress_callback=update_progress)
+                
+                # Filter comments by date range
+                start_datetime = pd.to_datetime(start_date)
+                end_datetime = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+                
+                for comment in all_comments:
+                    try:
+                        comment_date = pd.to_datetime(comment.get('comment_date', ''), format='%a %b %d %H:%M:%S %z %Y', errors='coerce')
+                        if pd.notna(comment_date):
+                            comment_date = comment_date.tz_localize(None) if comment_date.tz is not None else comment_date
+                            if start_datetime <= comment_date <= end_datetime:
+                                comments.append(comment)
+                    except Exception:
+                        # If date parsing fails, include the comment
+                        comments.append(comment)
         progress_bar.progress(100)
         for post in posts:
             post['tweet_type'] = 'Original Post'
