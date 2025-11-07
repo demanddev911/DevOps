@@ -341,32 +341,32 @@ st.markdown("""
     ============================================================ */
     .accordion-card {
         background: white;
-        border-radius: 16px;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s ease;
         overflow: hidden;
-        border: 2px solid #E0E0E0;
+        border: 1px solid #E5E7EB;
     }
     
     .accordion-card:hover {
-        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.15);
-        border-color: #BBDEFB;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        border-color: #D1D5DB;
     }
     
     .accordion-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 1.5rem 2rem;
+        padding: 1.25rem 1.75rem;
         cursor: pointer;
-        background: #FAFAFA;
-        transition: all 0.3s ease;
+        background: #F9FAFB;
+        transition: all 0.2s ease;
         direction: rtl;
     }
     
     .accordion-header:hover {
-        background: #F5F5F5;
+        background: #F3F4F6;
     }
     
     .accordion-header-content {
@@ -377,9 +377,9 @@ st.markdown("""
     }
     
     .accordion-icon {
-        width: 12px;
-        height: 12px;
-        background: #1976D2;
+        width: 8px;
+        height: 8px;
+        background: #9CA3AF;
         border-radius: 50%;
         flex-shrink: 0;
     }
@@ -389,29 +389,30 @@ st.markdown("""
     }
     
     .accordion-title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 700;
-        color: #212121;
+        color: #1F2937;
         margin: 0;
         font-family: 'Cairo', sans-serif;
     }
     
     .accordion-subtitle {
-        font-size: 0.85rem;
-        color: #666;
+        font-size: 0.8rem;
+        color: #6B7280;
         margin: 0.25rem 0 0 0;
-        font-style: italic;
+        font-style: normal;
+        font-weight: 500;
     }
     
     .accordion-arrow {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.3s ease;
-        font-size: 1.2rem;
-        color: #1976D2;
+        transition: transform 0.2s ease;
+        font-size: 1.1rem;
+        color: #6B7280;
     }
     
     .accordion-arrow.expanded {
@@ -431,9 +432,10 @@ st.markdown("""
     }
     
     .accordion-content {
-        padding: 2rem;
+        padding: 1.75rem;
         direction: rtl;
         text-align: right;
+        background: #FAFBFC;
     }
     
     .accordion-content p,
@@ -446,31 +448,33 @@ st.markdown("""
     }
     
     .selected-answer-box {
-        background: #E8F5E9;
-        border-radius: 10px;
-        padding: 1.25rem 1.5rem;
+        background: #FAFBFC;
+        border-radius: 8px;
+        padding: 1.5rem 1.75rem;
         margin-bottom: 1.5rem;
-        border-right: 4px solid #4CAF50;
+        border: 1px solid #E1E4E8;
+        border-right: 3px solid #4CAF50;
         direction: rtl;
         text-align: right;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     
     .selected-answer-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #2E7D32;
-        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #6B7280;
+        margin-bottom: 0.75rem;
         font-family: 'Cairo', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
         direction: rtl;
         text-align: right;
     }
     
     .selected-answer-text {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #2E7D32;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #1F2937;
         font-family: 'Cairo', sans-serif;
         line-height: 1.8;
         direction: rtl;
@@ -485,124 +489,130 @@ st.markdown("""
     }
     
     .reasoning-box {
-        background: #FFF8E1;
-        border-radius: 10px;
-        padding: 1.5rem;
-        border-right: 4px solid #F57C00;
+        background: #FFFFFF;
+        border-radius: 8px;
+        padding: 1.75rem;
+        border: 1px solid #E5E7EB;
         direction: rtl;
         text-align: right;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
     
     .reasoning-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #E65100;
-        margin-bottom: 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6B7280;
+        margin-bottom: 1.25rem;
         font-family: 'Cairo', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         direction: rtl;
         text-align: right;
+        border-bottom: 1px solid #F3F4F6;
+        padding-bottom: 0.75rem;
     }
     
     .reasoning-content {
-        font-size: 1rem;
-        line-height: 2;
-        color: #212121;
-        font-family: 'Cairo', sans-serif;
+        font-size: 0.95rem;
+        line-height: 1.9;
+        color: #374151;
+        font-family: 'Cairo', 'Inter', sans-serif;
         text-align: right;
         direction: rtl;
     }
     
     .reasoning-content a {
-        color: #1976D2;
+        color: #1565C0;
         text-decoration: none;
-        font-weight: 700;
-        padding: 8px 16px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 6px;
+        background: #F8F9FA;
+        transition: all 0.2s ease;
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        margin: 4px 8px;
-        border: 2px solid #90CAF9;
-        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
-        font-size: 0.95rem;
+        margin: 3px 6px;
+        border: 1px solid #DEE2E6;
+        font-size: 0.875rem;
         direction: ltr;
+        white-space: nowrap;
+        vertical-align: middle;
     }
     
     .reasoning-content a:hover {
-        color: white;
-        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
-        border-color: #1976D2;
+        color: #1565C0;
+        background: #E8F4F8;
+        border-color: #1565C0;
+        text-decoration: none;
     }
     
     .reasoning-content a::before {
         content: '🔗';
-        font-size: 1.1rem;
+        font-size: 0.9rem;
+        opacity: 0.7;
     }
     
-    /* Evidence Link Styling - Beautiful Twitter Links */
+    /* Evidence Link Styling - Professional & Clean */
     .evidence-link {
-        color: #1976D2 !important;
+        color: #1565C0 !important;
         text-decoration: none !important;
-        font-weight: 700 !important;
-        padding: 10px 20px !important;
-        border-radius: 12px !important;
-        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-weight: 600 !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        background: #F8F9FA !important;
+        transition: all 0.2s ease !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 8px !important;
-        margin: 6px 10px !important;
-        border: 2px solid #90CAF9 !important;
-        box-shadow: 0 3px 10px rgba(25, 118, 210, 0.2) !important;
-        font-size: 0.95rem !important;
-        font-family: 'Cairo', sans-serif !important;
-        direction: rtl !important;
+        gap: 6px !important;
+        margin: 3px 6px !important;
+        border: 1px solid #DEE2E6 !important;
+        font-size: 0.875rem !important;
+        font-family: 'Inter', 'Cairo', sans-serif !important;
+        direction: ltr !important;
+        white-space: nowrap !important;
+        vertical-align: middle !important;
     }
     
     .evidence-link::before {
         content: '🔗' !important;
-        font-size: 1.2rem !important;
+        font-size: 0.9rem !important;
+        opacity: 0.7 !important;
     }
     
     .evidence-link:hover {
-        color: white !important;
-        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
-        transform: translateY(-3px) scale(1.05) !important;
-        box-shadow: 0 8px 20px rgba(25, 118, 210, 0.5) !important;
-        border-color: #1976D2 !important;
+        color: #1565C0 !important;
+        background: #E8F4F8 !important;
+        border-color: #1565C0 !important;
+        text-decoration: none !important;
     }
     
     .evidence-link:active {
-        transform: translateY(-1px) scale(1.02) !important;
+        background: #D1E7F0 !important;
     }
     
     /* Evidence links in lists */
     .reasoning-content ul li,
     .reasoning-content ol li {
-        margin: 12px 0;
-        line-height: 2.2;
+        margin: 10px 0;
+        line-height: 2;
+        padding-right: 8px;
     }
     
     /* Ensure proper spacing around evidence links */
     .reasoning-content br + a.evidence-link,
     .reasoning-content p + a.evidence-link {
         display: inline-flex !important;
-        margin-top: 8px !important;
+        margin-top: 4px !important;
     }
     
     /* Better paragraph spacing with Arabic text */
     .reasoning-content p {
-        margin-bottom: 1.2rem;
-        line-height: 2;
+        margin-bottom: 1rem;
+        line-height: 1.9;
         direction: rtl;
         text-align: right;
     }
@@ -610,8 +620,8 @@ st.markdown("""
     /* Headlines and emphasis in Arabic */
     .reasoning-content strong,
     .reasoning-content b {
-        color: #1976D2;
-        font-weight: 800;
+        color: #212121;
+        font-weight: 700;
         direction: rtl;
     }
     
@@ -621,9 +631,23 @@ st.markdown("""
     .reasoning-content h4 {
         direction: rtl;
         text-align: right;
-        margin: 1.5rem 0 1rem 0;
+        margin: 1.5rem 0 0.8rem 0;
         color: #212121;
         font-family: 'Cairo', sans-serif;
+        font-weight: 700;
+    }
+    
+    /* Clean list styling */
+    .reasoning-content ul {
+        list-style-position: inside;
+        padding-right: 0;
+        direction: rtl;
+    }
+    
+    .reasoning-content ol {
+        list-style-position: inside;
+        padding-right: 0;
+        direction: rtl;
     }
     
     /* ============================================================
@@ -1744,12 +1768,12 @@ def display_report_section(title: str, content: str, section_id: str):
     """
     import re
     
-    # Convert evidence links to clickable hyperlinks with beautiful styling
+    # Convert evidence links to clickable hyperlinks with professional styling
     def make_link_clickable(match):
         url = match.group(1).strip()
         if not url.startswith('http'):
             return match.group(0)
-        return f'<a href="{url}" target="_blank" class="evidence-link">عرض الدليل</a>'
+        return f'<a href="{url}" target="_blank" class="evidence-link">المصدر</a>'
     
     def make_proof_link_clickable(match):
         url = match.group(1).strip()
@@ -1762,9 +1786,12 @@ def display_report_section(title: str, content: str, section_id: str):
             if 'status' in parts:
                 idx = parts.index('status')
                 if idx + 1 < len(parts):
-                    tweet_id = parts[idx + 1].split('?')[0][:8]
+                    tweet_id = parts[idx + 1].split('?')[0]
+                    # Keep only last 6 digits for cleaner look
+                    if len(tweet_id) > 6:
+                        tweet_id = '...' + tweet_id[-6:]
         
-        display_text = f'تغريدة {tweet_id}' if tweet_id else 'عرض الدليل'
+        display_text = f'المصدر' if not tweet_id else f'تغريدة'
         return f'<a href="{url}" target="_blank" class="evidence-link">{display_text}</a>'
     
     # Apply link patterns
