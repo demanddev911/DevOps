@@ -1146,7 +1146,7 @@ def show_extraction_modal():
     st.markdown("### Configure Your Extraction")
     col1, col2 = st.columns(2)
     with col1:
-        username = st.text_input("X Username", value="thatdayin1992", help="Enter username without @")
+        username = st.text_input("X Username", value="", help="Enter username without @")
         target_posts = st.number_input("Target Posts", min_value=100, max_value=30000, value=5000, step=100)
         target_replies = st.number_input("Target Replies", min_value=100, max_value=30000, value=5000, step=100)
     with col2:
