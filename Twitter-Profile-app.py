@@ -1518,39 +1518,13 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     # Clean content
     content = content.replace('\r\n', '\n').replace('\r', '\n')
     
-    # Convert [text](url) format FIRST
-    def make_markdown_link(match):
-        text = match.group(1)
-        url = match.group(2)
-        return f'<a href="{url}" target="_blank" class="evidence-link">{text}</a>'
-    
-    content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
-    
-    # Convert ALL raw URLs to clickable links (don't show full URL)
-    # Make sure we don't convert URLs that are already inside href attributes
-    def convert_raw_url(match):
-        url = match.group(0)
-        # Check if this URL is already inside an href attribute
-        if 'href="' + url in content or 'href=\'' + url in content:
-            return url  # Don't convert, already a link
-        # Extract tweet ID or username for display
-        if 'twitter.com' in url or 'x.com' in url:
-            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 عرض التغريدة</a>'
-        else:
-            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 رابط</a>'
-    
-    # Convert raw URLs that are NOT already in links
-    content = re.sub(r'(?<!href=["\'])https?://[^\s<>\)]+(?!["\'])', convert_raw_url, content)
-    
-    # Remove placeholder link texts like [رابط التعليق 1], [رابط تعليق 2], etc.
+    # Remove placeholder texts FIRST before processing links
     content = re.sub(r'\[رابط\s+[^\]]+\]', '', content)
     content = re.sub(r'\[link\s+[^\]]+\]', '', content, flags=re.IGNORECASE)
-    
-    # Remove [الإثبات text
     content = re.sub(r'\[الإثبات[^\]]*\]?', '', content)
     content = re.sub(r'\[الإثبات', '', content)
     
-    # Clean up bullet points with empty content after removing links
+    # Clean up bullet points with empty content
     content = re.sub(r'•\s*\n', '', content)
     content = re.sub(r'•\s*<br>\s*<br>', '<br>', content)
     
@@ -1612,10 +1586,48 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     
     content = '\n'.join(processed_lines)
     
+    # NOW convert URLs to links (after all other processing)
+    # Use placeholders to protect already-converted links
+    link_placeholders = {}
+    placeholder_counter = [0]
+    
+    # Step 1: Convert [text](url) markdown format and protect with placeholder
+    def make_markdown_link(match):
+        text = match.group(1)
+        url = match.group(2)
+        link_html = f'<a href="{url}" target="_blank" class="evidence-link">{text}</a>'
+        placeholder = f'___LINK_PLACEHOLDER_{placeholder_counter[0]}___'
+        link_placeholders[placeholder] = link_html
+        placeholder_counter[0] += 1
+        return placeholder
+    
+    content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
+    
+    # Step 2: Convert raw URLs to clickable links
+    def convert_raw_url(match):
+        url = match.group(0)
+        # Make clickable link
+        if 'twitter.com' in url or 'x.com' in url:
+            link_html = f'<a href="{url}" target="_blank" class="evidence-link">🔗 عرض التغريدة</a>'
+        else:
+            link_html = f'<a href="{url}" target="_blank" class="evidence-link">🔗 رابط</a>'
+        
+        placeholder = f'___LINK_PLACEHOLDER_{placeholder_counter[0]}___'
+        link_placeholders[placeholder] = link_html
+        placeholder_counter[0] += 1
+        return placeholder
+    
+    # Convert all standalone URLs
+    content = re.sub(r'https?://[^\s<>\)]+', convert_raw_url, content)
+    
     # Convert to HTML with simple formatting
     content = content.replace('\n\n', '</p><p>')
     content = f'<p>{content}</p>'
     content = content.replace('\n', '<br>')
+    
+    # Step 3: Restore all link placeholders with actual HTML
+    for placeholder, link_html in link_placeholders.items():
+        content = content.replace(placeholder, link_html)
     
     st.markdown(f"""
     <style>
@@ -1719,7 +1731,21 @@ def extract_tweet_urls_for_evidence(df_tweets, sample_size=200):
 def ai_detailed_report_page():
     """صفحة التقرير التفصيلي مع تصميم حديث وجذاب"""
     if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
-        st.info("📊 لازم تستخرج البيانات أول من قسم لوحة التحكم")
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            📊 لازم تستخرج البيانات أول من قسم لوحة التحكم
+        </div>
+        """, unsafe_allow_html=True)
         if st.button("استخراج البيانات", type="primary"):
             show_extraction_modal()
         return
@@ -1731,7 +1757,21 @@ def ai_detailed_report_page():
     
     # التحقق من وجود التعليقات
     if df_comments is None or df_comments.empty:
-        st.warning("ما فيه تعليقات متوفرة حق التحليل. لازم تستخرج التعليقات أولاً من قسم لوحة التحكم.")
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ ما فيه تعليقات متوفرة حق التحليل. لازم تستخرج التعليقات أولاً من قسم لوحة التحكم.
+        </div>
+        """, unsafe_allow_html=True)
         return
     
     # Parse dates in dataframes if not already parsed
@@ -1961,7 +2001,21 @@ def ai_detailed_report_page():
         st.stop()
     
     if not generate_button:
-        st.info("👆 اضغط على زر إنشاء التقرير لبدء التحليل")
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            👆 اضغط على زر إنشاء التقرير لبدء التحليل
+        </div>
+        """, unsafe_allow_html=True)
         return
     
     # Filter data based on date range
@@ -1982,7 +2036,21 @@ def ai_detailed_report_page():
     
     # Check if filtered data is empty
     if df_comments_filtered.empty:
-        st.warning(f"⚠️ لا توجد تعليقات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.")
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ لا توجد تعليقات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.
+        </div>
+        """, unsafe_allow_html=True)
         st.stop()
     
     # Clear the AI report cache when generating a new report with different dates
@@ -2020,7 +2088,20 @@ def ai_detailed_report_page():
 """
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
-        status_text.info(f"عم ننشئ: {section_title}...")
+        status_text.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+        ">
+            ⏳ عم ننشئ: {section_title}...
+        </div>
+        """, unsafe_allow_html=True)
         progress_bar.progress(progress_val)
         
         if section_key == "executive_summary":
