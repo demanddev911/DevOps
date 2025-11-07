@@ -379,6 +379,89 @@ st.markdown("""
     ::-webkit-scrollbar-thumb:hover {
         background: #999;
     }
+    
+    /* Detailed Report Page Enhancements */
+    .main [direction="rtl"] {
+        font-family: 'Cairo', 'Inter', sans-serif;
+    }
+    
+    .main table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .main table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px;
+        font-weight: bold;
+        border: 1px solid #ddd;
+    }
+    
+    .main table td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        line-height: 1.6;
+    }
+    
+    .main table tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    
+    .main ul, .main ol {
+        line-height: 1.8;
+        margin: 10px 0;
+        padding-right: 20px;
+    }
+    
+    .main li {
+        margin-bottom: 8px;
+    }
+    
+    .main strong {
+        font-weight: 700;
+        color: #1e3a8a;
+    }
+    
+    .main a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .main a:hover {
+        color: #1e40af;
+        text-decoration: underline;
+    }
+    
+    /* Date input styling */
+    .stDateInput > div > div > input {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        padding: 12px;
+        font-size: 16px;
+    }
+    
+    .stDateInput > div > div > input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Primary button for report generation */
+    button[key="generate_detailed_report_btn"] {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3) !important;
+        font-weight: bold !important;
+    }
+    
+    button[key="generate_detailed_report_btn"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4) !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -1286,22 +1369,76 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
     else:
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
-def display_report_section(title: str, content: str):
-    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
+def display_report_section(title: str, content: str, section_type: str = "default"):
+    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط وتصميم حديث"""
     import re
     
     # تحويل الروابط لـ hyperlinks
     def make_link_clickable(match):
         url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #1DA1F2; text-decoration: none; font-weight: bold; border-bottom: 1px solid #1DA1F2;">🔗 رابط الإثبات</a>'
+        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: bold;">🔗 رابط الإثبات</a>'
     
     # Pattern للروابط داخل [الإثبات: ...]
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
     
+    # Convert markdown to HTML for better formatting
+    # Handle bold text
+    content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
+    # Handle line breaks
+    content = content.replace('\n', '<br>')
+    
+    # Different section styles based on type
+    if section_type == "executive_summary":
+        icon = "📋"
+        border_color = "#3b82f6"
+        bg_color = "#eff6ff"
+    elif section_type == "pros_cons":
+        icon = "⚖️"
+        border_color = "#8b5cf6"
+        bg_color = "#f5f3ff"
+    elif section_type == "complaints":
+        icon = "💬"
+        border_color = "#ef4444"
+        bg_color = "#fef2f2"
+    elif section_type == "insights":
+        icon = "💡"
+        border_color = "#10b981"
+        bg_color = "#f0fdf4"
+    else:
+        icon = "📊"
+        border_color = "#3b82f6"
+        bg_color = "#f8fafc"
+    
     st.markdown(f"""
-    <div class="report-section">
-        <div class="report-title">{title}</div>
-        <div class="report-content">{content}</div>
+    <div style="
+        direction: rtl;
+        background-color: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    ">
+        <h2 style="
+            color: #1e3a8a;
+            border-bottom: 3px solid {border_color};
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        ">{icon} {title}</h2>
+        <div style="
+            background-color: {bg_color};
+            padding: 20px;
+            border-radius: 10px;
+            border-right: 4px solid {border_color};
+            line-height: 1.8;
+            font-size: 15px;
+            text-align: right;
+        ">
+            {content}
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1326,7 +1463,7 @@ def extract_tweet_urls_for_evidence(df_tweets, sample_size=200):
     return tweet_evidence
 
 def ai_detailed_report_page():
-    """صفحة التقرير التفصيلي مع روابط الإثبات كـ Hyperlinks"""
+    """صفحة التقرير التفصيلي مع تصميم حديث وجذاب"""
     if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
         st.info("📊 لازم تستخرج البيانات أول من قسم لوحة التحكم")
         if st.button("استخراج البيانات", type="primary"):
@@ -1342,12 +1479,6 @@ def ai_detailed_report_page():
     if df_comments is None or df_comments.empty:
         st.warning("ما فيه تعليقات متوفرة حق التحليل. لازم تستخرج التعليقات أولاً من قسم لوحة التحكم.")
         return
-    
-    # ============================================================
-    # DATE FILTER SECTION
-    # ============================================================
-    st.markdown("### 📅 تحديد نطاق التاريخ للتقرير")
-    st.markdown("---")
     
     # Parse dates in dataframes if not already parsed
     if 'parsed_date' not in df_tweets.columns:
@@ -1377,48 +1508,133 @@ def ai_detailed_report_page():
         default_start_date = datetime.now().date()
         default_end_date = datetime.now().date()
     
+    # Modern Header with Gradient
+    current_time = datetime.now().strftime("%d %B %Y - %H:%M")
+    st.markdown(f"""
+    <div style="
+        direction: rtl;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    ">
+        <h1 style="font-size: 32px; margin: 0 0 10px 0; font-weight: bold;">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="font-size: 20px; margin: 10px 0; font-weight: bold;">حساب تويتر: @{username}</h2>
+        <p style="font-size: 14px; opacity: 0.9;">تاريخ التحليل: {current_time}</p>
+        <p style="font-size: 13px; opacity: 0.85;">حجم العينة: {len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Date Filter Section with Modern Card Design
+    st.markdown("""
+    <div style="
+        direction: rtl;
+        background-color: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    ">
+        <h2 style="
+            color: #1e3a8a;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        ">📅 تصفية حسب التاريخ</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Create date filter UI
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([1, 1, 0.6])
     
     with col1:
+        st.markdown('<p style="direction: rtl; margin-bottom: 8px; color: #475569; font-weight: bold;">📆 تاريخ البداية (من)</p>', unsafe_allow_html=True)
         start_date = st.date_input(
-            "📆 تاريخ البداية (من)",
+            "تاريخ البداية",
             value=default_start_date,
             min_value=default_start_date,
             max_value=default_end_date,
             help="اختر تاريخ البداية لنطاق التقرير",
-            key="report_start_date"
+            key="report_start_date",
+            label_visibility="collapsed"
         )
     
     with col2:
+        st.markdown('<p style="direction: rtl; margin-bottom: 8px; color: #475569; font-weight: bold;">📆 تاريخ النهاية (إلى)</p>', unsafe_allow_html=True)
         end_date = st.date_input(
-            "📆 تاريخ النهاية (إلى)",
+            "تاريخ النهاية",
             value=default_end_date,
             min_value=default_start_date,
             max_value=default_end_date,
             help="اختر تاريخ النهاية لنطاق التقرير",
-            key="report_end_date"
+            key="report_end_date",
+            label_visibility="collapsed"
+        )
+    
+    with col3:
+        st.markdown('<p style="margin-bottom: 8px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        generate_button = st.button(
+            "🔍 إنشاء التقرير",
+            type="primary",
+            use_container_width=True,
+            key="generate_detailed_report_btn"
         )
     
     # Validation
     date_validation_error = None
     if start_date and end_date:
         if start_date > end_date:
-            date_validation_error = "❌ خطأ: تاريخ البداية يجب أن يكون قبل أو مساوٍ لتاريخ النهاية"
+            date_validation_error = True
+            st.markdown("""
+            <div style="
+                direction: rtl;
+                background-color: #fef3c7;
+                border-right: 4px solid #f59e0b;
+                padding: 15px;
+                border-radius: 8px;
+                margin-top: 15px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            ">
+                <span>⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        date_validation_error = "❌ خطأ: يجب اختيار كلا التاريخين"
+        date_validation_error = True
     
-    # Display validation error
+    # Display validation success
+    if not date_validation_error and generate_button:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            background-color: #d1fae5;
+            border-right: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        ">
+            <span>✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
     if date_validation_error:
-        st.error(date_validation_error)
         st.stop()
     
-    # Display date range summary
-    st.info(f"📊 **نطاق التقرير:** سيتم تضمين البيانات من **{start_date.strftime('%Y-%m-%d')}** إلى **{end_date.strftime('%Y-%m-%d')}**")
+    if not generate_button:
+        st.info("👆 اضغط على زر إنشاء التقرير لبدء التحليل")
+        return
     
     # Filter data based on date range
     start_datetime = pd.Timestamp(start_date)
-    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)  # End of day
+    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
     
     # Filter tweets
     df_tweets_filtered = df_tweets[
@@ -1437,33 +1653,13 @@ def ai_detailed_report_page():
         st.warning(f"⚠️ لا توجد تعليقات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.")
         st.stop()
     
-    # Display filtered data statistics
-    st.success(f"✅ تم تصفية البيانات بنجاح: **{len(df_tweets_filtered):,}** منشور و **{len(df_comments_filtered):,}** تعليق")
-    
-    # Generate Report Button
-    st.markdown("---")
-    generate_button = st.button(
-        "🚀 إنشاء التقرير التفصيلي",
-        type="primary",
-        use_container_width=True,
-        key="generate_detailed_report_btn"
-    )
-    
-    if not generate_button:
-        st.info("👆 اضغط على الزر أعلاه لإنشاء التقرير التفصيلي للفترة المحددة")
-        return
-    
     # Clear the AI report cache when generating a new report with different dates
-    # This ensures the AI generates fresh content based on the selected date range
     if 'ai_report_cache' in st.session_state:
         st.session_state.ai_report_cache.clear()
-        st.info("🔄 تم مسح التقارير السابقة - جاري إنشاء تقرير جديد للفترة المحددة...")
     
     # Use filtered data for report generation
     df_comments = df_comments_filtered
     df_tweets = df_tweets_filtered
-    
-    st.markdown("---")
     
     mistral = MistralAnalyzer(MISTRAL_API_KEY)
     
@@ -1702,8 +1898,18 @@ def ai_detailed_report_page():
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
             content = generate_ai_section(mistral, section_key, prompt, 15000)
         
-        # عرض القسم مع تحويل الروابط لـ hyperlinks
-        display_report_section(section_title, content)
+        # عرض القسم مع تحويل الروابط لـ hyperlinks وتصميم حديث
+        if section_key == "executive_summary":
+            display_report_section(section_title, content, "executive_summary")
+        elif section_key == "pros_cons":
+            display_report_section(section_title, content, "pros_cons")
+        elif section_key == "complaints_classification":
+            display_report_section(section_title, content, "complaints")
+        elif section_key == "public_opinion_insights":
+            display_report_section(section_title, content, "insights")
+        else:
+            display_report_section(section_title, content)
+        
         time.sleep(1)
     
     progress_bar.progress(100)
