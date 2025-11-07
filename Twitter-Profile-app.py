@@ -1773,8 +1773,8 @@ def generate_ai_section(gemini: GeminiAnalyzer, section_name: str, prompt: str, 
     result = gemini.analyze(prompt, max_tokens)
     
     if result and result.strip():
-        # Clean formatting markers
-        cleaned_result = result.replace('**', '').replace('*', '').strip()
+        # Keep markdown formatting for proper hierarchy
+        cleaned_result = result.strip()
         
         # Cache the result
         st.session_state.ai_report_cache[section_name] = cleaned_result
@@ -1794,6 +1794,53 @@ def display_report_section(title: str, content: str, section_id: str):
         section_id: Unique identifier for the accordion section
     """
     import re
+    
+    # Convert markdown to HTML
+    def convert_markdown_to_html(text):
+        # Convert headers first
+        text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
+        text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
+        text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+        
+        # Convert bold
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+        
+        # Process line by line for better control
+        lines = text.split('\n')
+        processed_lines = []
+        in_list = False
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            if not stripped:
+                if in_list:
+                    processed_lines.append('</ul>')
+                    in_list = False
+                processed_lines.append('')
+            elif line.startswith('<h'):
+                if in_list:
+                    processed_lines.append('</ul>')
+                    in_list = False
+                processed_lines.append(line)
+            elif stripped.startswith('- '):
+                if not in_list:
+                    processed_lines.append('<ul>')
+                    in_list = True
+                processed_lines.append(f'<li>{stripped[2:]}</li>')
+            else:
+                if in_list:
+                    processed_lines.append('</ul>')
+                    in_list = False
+                if not line.startswith('<'):
+                    processed_lines.append(f'<p>{line}</p>')
+                else:
+                    processed_lines.append(line)
+        
+        if in_list:
+            processed_lines.append('</ul>')
+        
+        return '\n'.join(processed_lines)
     
     # Convert evidence links to clickable hyperlinks with professional styling
     def make_link_clickable(match):
@@ -1821,32 +1868,22 @@ def display_report_section(title: str, content: str, section_id: str):
         display_text = f'المصدر' if not tweet_id else f'تغريدة'
         return f'<a href="{url}" target="_blank" class="evidence-link">{display_text}</a>'
     
+    # Convert markdown to HTML first
+    content = convert_markdown_to_html(content)
+    
     # Apply link patterns
     content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
     content = re.sub(r'[- ]*الدليل:\s*(https?://\S+)', make_proof_link_clickable, content)
     content = re.sub(r'[- ]*دليل:\s*(https?://\S+)', make_proof_link_clickable, content)
     content = re.sub(r'🔗\s*(https?://\S+)', make_proof_link_clickable, content)
     
-    # Split content into summary and detailed analysis (if applicable)
-    content_parts = content.split('\n\n', 1)
-    summary = content_parts[0] if len(content_parts) > 0 else content
-    detailed = content_parts[1] if len(content_parts) > 1 else content
-    
     # Use Streamlit expander (native and working)
     with st.expander(f"🔵 {title}", expanded=False):
-        # Summary box
-        st.markdown(f"""
-        <div class="selected-answer-box">
-            <div class="selected-answer-title">✅ الملخص السريع</div>
-            <div class="selected-answer-text">{summary[:200]}...</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Detailed analysis box
+        # Detailed analysis box with full content
         st.markdown(f"""
         <div class="reasoning-box">
             <div class="reasoning-title">🧠 التحليل التفصيلي</div>
-            <div class="reasoning-content">{detailed}</div>
+            <div class="reasoning-content">{content}</div>
         </div>
         """, unsafe_allow_html=True)
 
