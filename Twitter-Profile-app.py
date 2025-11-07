@@ -380,7 +380,7 @@ st.markdown("""
         background: #999;
     }
     
-    /* Detailed Report Page Enhancements - Unified Font & Animations */
+    /* Detailed Report Page Enhancements - Unified Font */
     .main [direction="rtl"],
     .main [direction="rtl"] *,
     .main div[style*="direction: rtl"],
@@ -395,31 +395,9 @@ st.markdown("""
         text-rendering: optimizeLegibility;
     }
     
-    /* Smooth animations for report sections */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .report-section {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .report-section:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
-    }
-    
-    /* Table row hover effect */
+    /* Simple table row hover */
     .main table tbody tr:hover {
-        background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, transparent 100%) !important;
-        transform: scale(1.01);
+        background: #f1f5f9 !important;
     }
     
     .main table {
@@ -1490,7 +1468,7 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
 def convert_table_to_html(table_rows, border_color="#3b82f6"):
-    """Convert markdown table rows to premium styled HTML table"""
+    """Convert markdown table rows to clean HTML table"""
     if not table_rows or len(table_rows) < 1:
         return ""
     
@@ -1505,28 +1483,28 @@ def convert_table_to_html(table_rows, border_color="#3b82f6"):
     if not rows:
         return ""
     
-    # Build premium HTML table
-    html = '<div style="margin: 30px 0; overflow-x: auto; direction: rtl; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);">'
-    html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; border-radius: 15px; overflow: hidden; background: white;">'
+    # Build clean HTML table
+    html = '<div style="margin: 25px 0; overflow-x: auto; direction: rtl; border-radius: 8px; border: 1px solid #e2e8f0;">'
+    html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; background: white;">'
     
-    # Premium header row with gradient
+    # Header row
     html += '<thead><tr>'
     for i, cell in enumerate(rows[0]):
         if i == 0:
-            gradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)"  # Green gradient
+            bg_color = "#10b981"  # Green
         else:
-            gradient = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"  # Red gradient
-        html += f'<th style="background: {gradient}; color: white; padding: 18px 20px; font-weight: 700; text-align: right; font-size: 1.1rem; font-family: \'Cairo\', sans-serif; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); letter-spacing: -0.01em;">{cell}</th>'
+            bg_color = "#ef4444"  # Red
+        html += f'<th style="background: {bg_color}; color: white; padding: 16px 20px; font-weight: 600; text-align: right; font-size: 1rem; font-family: \'Cairo\', sans-serif;">{cell}</th>'
     html += '</tr></thead>'
     
-    # Premium body rows with hover effect
+    # Body rows
     if len(rows) > 1:
         html += '<tbody>'
         for i, row in enumerate(rows[1:]):
-            bg = "#f9fafb" if i % 2 == 0 else "white"
-            html += f'<tr style="background: {bg}; transition: all 0.2s ease;">'
+            bg = "#f8fafc" if i % 2 == 0 else "white"
+            html += f'<tr style="background: {bg};">'
             for j, cell in enumerate(row):
-                html += f'<td style="padding: 20px; text-align: right; vertical-align: top; line-height: 1.9; font-size: 1.05rem; border-bottom: 1px solid #e5e7eb; font-family: \'Cairo\', sans-serif; direction: rtl; color: #374151;">{cell}</td>'
+                html += f'<td style="padding: 16px 20px; text-align: right; vertical-align: top; line-height: 1.8; font-size: 1rem; border-bottom: 1px solid #e5e7eb; font-family: \'Cairo\', sans-serif; direction: rtl; color: #334155;">{cell}</td>'
             html += '</tr>'
         html += '</tbody>'
     
@@ -1573,32 +1551,27 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     content = re.sub(r'•\s*\n', '', content)
     content = re.sub(r'•\s*<br>\s*<br>', '<br>', content)
     
-    # Premium section colors and styling
+    # Clean section colors
     if section_type == "executive_summary":
         icon = "📋"
-        gradient_color = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-        border_color = "#667eea"
-        icon_bg = "rgba(102, 126, 234, 0.1)"
+        title_color = "#3b82f6"
+        border_color = "#3b82f6"
     elif section_type == "pros_cons":
         icon = "⚖️"
-        gradient_color = "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-        border_color = "#f093fb"
-        icon_bg = "rgba(240, 147, 251, 0.1)"
+        title_color = "#8b5cf6"
+        border_color = "#8b5cf6"
     elif section_type == "complaints":
         icon = "💬"
-        gradient_color = "linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
-        border_color = "#fa709a"
-        icon_bg = "rgba(250, 112, 154, 0.1)"
+        title_color = "#ef4444"
+        border_color = "#ef4444"
     elif section_type == "insights":
         icon = "💡"
-        gradient_color = "linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
-        border_color = "#30cfd0"
-        icon_bg = "rgba(48, 207, 208, 0.1)"
+        title_color = "#10b981"
+        border_color = "#10b981"
     else:
         icon = "📊"
-        gradient_color = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-        border_color = "#667eea"
-        icon_bg = "rgba(102, 126, 234, 0.1)"
+        title_color = "#3b82f6"
+        border_color = "#3b82f6"
     
     # Remove markdown formatting
     content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
@@ -1644,36 +1617,26 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     st.markdown(f"""
     <style>
         .evidence-link {{
-            color: #667eea;
+            color: #3b82f6;
             text-decoration: none;
             font-weight: 600;
-            transition: all 0.3s ease;
             font-size: 1rem;
             font-family: 'Cairo', sans-serif !important;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: rgba(102, 126, 234, 0.08);
         }}
         .evidence-link:hover {{
-            color: #764ba2;
-            background: rgba(102, 126, 234, 0.15);
-            transform: translateY(-1px);
+            text-decoration: underline;
         }}
         .report-content p {{
-            margin-bottom: 20px;
-            line-height: 2;
+            margin-bottom: 18px;
+            line-height: 1.9;
             direction: rtl;
             text-align: right;
             font-family: 'Cairo', sans-serif !important;
         }}
         .report-content strong {{
             font-weight: 700;
-            color: #1f2937;
+            color: {title_color};
             font-family: 'Cairo', sans-serif !important;
-            background: linear-gradient(135deg, {gradient_color});
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }}
         .report-content ul, .report-content ol {{
             direction: rtl;
@@ -1684,20 +1647,8 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         .report-content li {{
             direction: rtl;
             text-align: right;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             font-family: 'Cairo', sans-serif !important;
-            position: relative;
-            padding-right: 10px;
-        }}
-        .report-content li:before {{
-            content: '';
-            position: absolute;
-            right: -15px;
-            top: 10px;
-            width: 6px;
-            height: 6px;
-            background: {border_color};
-            border-radius: 50%;
         }}
     </style>
     
@@ -1705,61 +1656,32 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         direction: rtl;
         background: white;
         padding: 0;
-        border-radius: 20px;
-        margin-bottom: 35px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        border: 2px solid rgba(0, 0, 0, 0.04);
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-right: 5px solid {border_color};
         overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
     ">
         <div style="
-            background: {gradient_color};
-            padding: 30px 40px;
-            position: relative;
-            overflow: hidden;
+            padding: 30px 35px 20px 35px;
+            border-bottom: 1px solid #e2e8f0;
         ">
-            <div style=\"
-                position: absolute;
-                top: -20px;
-                left: -20px;
-                width: 100px;
-                height: 100px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 50%;
-            \"></div>
-            <h2 style=\"
-                color: white;
+            <h2 style="
+                color: {title_color};
                 margin: 0;
-                font-weight: 800;
-                font-size: 1.75rem;
+                font-weight: 700;
+                font-size: 1.5rem;
                 font-family: 'Cairo', sans-serif;
                 direction: rtl;
                 text-align: right;
-                position: relative;
-                z-index: 1;
-                text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            \">
-                <span style=\"
-                    background: rgba(255, 255, 255, 0.2);
-                    padding: 10px 15px;
-                    border-radius: 12px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    backdrop-filter: blur(10px);
-                \">{icon}</span>
-                {title}
-            </h2>
+            ">{icon} {title}</h2>
         </div>
         <div class="report-content" style="
             background: white;
-            padding: 40px;
-            line-height: 2;
+            padding: 35px;
+            line-height: 1.9;
             font-size: 1.0625rem;
-            color: #374151;
+            color: #334155;
             font-family: 'Cairo', sans-serif;
             direction: rtl;
             text-align: right;
@@ -1835,132 +1757,92 @@ def ai_detailed_report_page():
         default_start_date = datetime.now().date()
         default_end_date = datetime.now().date()
     
-    # Premium Professional Header
+    # Clean Professional Header
     current_time = datetime.now().strftime("%d %B %Y - %H:%M")
     st.markdown(f"""
     <div style="
         direction: rtl;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 50px 40px;
-        border-radius: 20px;
-        text-align: center;
-        margin-bottom: 40px;
-        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3), 0 10px 30px rgba(0, 0, 0, 0.1);
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         font-family: 'Cairo', sans-serif;
-        position: relative;
-        overflow: hidden;
+        border-right: 5px solid #3b82f6;
     ">
+        <h1 style="
+            font-size: 2.25rem; 
+            margin: 0 0 12px 0; 
+            font-weight: 700;
+            direction: rtl;
+            color: #1e293b;
+        ">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="
+            font-size: 1.25rem; 
+            margin: 0 0 20px 0; 
+            font-weight: 600;
+            direction: rtl;
+            color: #64748b;
+        ">حساب تويتر: @{username}</h2>
         <div style="
-            position: absolute;
-            top: -50px;
-            left: -50px;
-            width: 200px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        "></div>
-        <div style="
-            position: absolute;
-            bottom: -30px;
-            right: -30px;
-            width: 150px;
-            height: 150px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        "></div>
-        <div style="position: relative; z-index: 1;">
-            <h1 style="
-                font-size: 2.5rem; 
-                margin: 0 0 20px 0; 
-                font-weight: 800;
-                line-height: 1.3;
-                direction: rtl;
-                color: white;
-                text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
-                letter-spacing: -0.02em;
-            ">📊 تقرير التحليل التفصيلي</h1>
-            <h2 style="
-                font-size: 1.5rem; 
-                margin: 15px 0 25px 0; 
-                font-weight: 600;
-                direction: rtl;
-                color: rgba(255, 255, 255, 0.95);
-            ">حساب تويتر: @{username}</h2>
-            <div style="
-                display: inline-flex;
-                gap: 30px;
-                margin-top: 25px;
-                padding: 20px 35px;
-                background: rgba(255, 255, 255, 0.15);
-                border-radius: 15px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-                <div style="text-align: center;">
-                    <p style="
-                        font-size: 0.875rem; 
-                        margin: 0 0 5px 0;
-                        font-weight: 500;
-                        direction: rtl;
-                        color: rgba(255, 255, 255, 0.8);
-                    ">📅 تاريخ التحليل</p>
-                    <p style="
-                        font-size: 1rem; 
-                        margin: 0;
-                        font-weight: 700;
-                        direction: rtl;
-                        color: white;
-                    ">{current_time}</p>
-                </div>
-                <div style="
-                    width: 1px;
-                    background: rgba(255, 255, 255, 0.3);
-                "></div>
-                <div style="text-align: center;">
-                    <p style="
-                        font-size: 0.875rem; 
-                        margin: 0 0 5px 0;
-                        font-weight: 500;
-                        direction: rtl;
-                        color: rgba(255, 255, 255, 0.8);
-                    ">📈 حجم العينة</p>
-                    <p style="
-                        font-size: 1rem; 
-                        margin: 0;
-                        font-weight: 700;
-                        direction: rtl;
-                        color: white;
-                    ">{len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
-                </div>
+            display: flex;
+            gap: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            direction: rtl;
+        ">
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #64748b;
+                    direction: rtl;
+                ">📅 تاريخ التحليل</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #1e293b;
+                ">{current_time}</p>
+            </div>
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #64748b;
+                    direction: rtl;
+                ">📈 حجم العينة</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #1e293b;
+                ">{len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Premium Date Filter Section
+    # Clean Date Filter Section
     st.markdown("""
     <div style="
         direction: rtl;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        padding: 35px;
-        border-radius: 20px;
-        margin-bottom: 35px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        border: 2px solid rgba(255, 255, 255, 0.8);
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-right: 5px solid #10b981;
     ">
         <h2 style="
             color: #1e293b;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            padding-bottom: 15px;
-            margin: 0 0 25px 0;
-            font-weight: 800;
-            font-size: 1.5rem;
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.375rem;
             font-family: 'Cairo', sans-serif;
-            letter-spacing: -0.01em;
-            position: relative;
+            direction: rtl;
         ">📅 تصفية حسب التاريخ</h2>
     </div>
     """, unsafe_allow_html=True)
@@ -2029,23 +1911,19 @@ def ai_detailed_report_page():
             st.markdown("""
             <div style="
                 direction: rtl;
-                background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-                border-right: 5px solid #f59e0b;
-                padding: 25px 30px;
-                border-radius: 15px;
-                margin-top: 25px;
-                box-shadow: 0 10px 30px rgba(245, 158, 11, 0.25);
+                background: #fef3c7;
+                border-right: 4px solid #f59e0b;
+                padding: 20px 25px;
+                border-radius: 8px;
+                margin-top: 20px;
                 font-family: 'Cairo', sans-serif;
                 text-align: right;
             ">
                 <span style="
-                    font-size: 1.125rem;
-                    font-weight: 700;
+                    font-size: 1rem;
+                    font-weight: 600;
                     color: #92400e;
                     direction: rtl;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
                 ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
             </div>
             """, unsafe_allow_html=True)
@@ -2057,24 +1935,20 @@ def ai_detailed_report_page():
         st.markdown(f"""
         <div style="
             direction: rtl;
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            border-right: 5px solid #10b981;
-            padding: 25px 30px;
-            border-radius: 15px;
-            margin-top: 25px;
-            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);
+            background: #d1fae5;
+            border-right: 4px solid #10b981;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
             font-family: 'Cairo', sans-serif;
             text-align: right;
         ">
             <span style="
-                font-size: 1.125rem;
-                font-weight: 700;
+                font-size: 1rem;
+                font-weight: 600;
                 color: #065f46;
                 direction: rtl;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}</span>
+            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} ألى {end_date.strftime('%Y-%m-%d')}</span>
         </div>
         """, unsafe_allow_html=True)
     
@@ -2368,46 +2242,23 @@ def ai_detailed_report_page():
     progress_bar.progress(100)
     status_text.empty()
     
-    # Premium completion message
+    # Clean completion message
     st.markdown("""
     <div style="
         direction: rtl;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 35px 40px;
-        border-radius: 20px;
-        margin: 30px 0;
-        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        background: #10b981;
+        padding: 25px 30px;
+        border-radius: 8px;
+        margin: 25px 0;
         text-align: center;
-        position: relative;
-        overflow: hidden;
     ">
-        <div style="
-            position: absolute;
-            top: -30px;
-            right: -30px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        "></div>
-        <div style="
-            font-size: 3rem;
-            margin-bottom: 15px;
-        ">✅</div>
-        <h2 style="
+        <h3 style="
             color: white;
-            font-size: 1.75rem;
-            font-weight: 800;
-            margin: 0 0 10px 0;
-            font-family: 'Cairo', sans-serif;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        ">تم إنشاء التقرير التفصيلي بنجاح!</h2>
-        <p style="
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.125rem;
+            font-size: 1.25rem;
+            font-weight: 600;
             margin: 0;
             font-family: 'Cairo', sans-serif;
-        ">جاهز للعرض والمشاركة</p>
+        ">✅ تم إنشاء التقرير التفصيلي بنجاح</h3>
     </div>
     """, unsafe_allow_html=True)
 
