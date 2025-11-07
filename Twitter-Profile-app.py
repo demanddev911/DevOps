@@ -1436,8 +1436,8 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
     else:
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
-def convert_table_to_html(table_rows, border_color="#667eea"):
-    """Convert markdown table rows to HTML table"""
+def convert_table_to_html(table_rows, border_color="#3b82f6"):
+    """Convert markdown table rows to beautiful HTML table"""
     if not table_rows or len(table_rows) < 1:
         return ""
     
@@ -1452,24 +1452,33 @@ def convert_table_to_html(table_rows, border_color="#667eea"):
     if not rows:
         return ""
     
-    # Build HTML table
-    html = '<div style="margin: 25px 0; overflow-x: auto;">'
-    html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">'
+    # Build HTML table with clean design
+    html = '<div style="margin: 30px 0; overflow-x: auto; direction: rtl;">'
+    html += '<table style="width: 100%; border-collapse: separate; border-spacing: 0; direction: rtl; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">'
     
-    # Header row
+    # Header row - solid color, no gradient
     html += '<thead><tr>'
-    for cell in rows[0]:
-        html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; font-weight: 700; text-align: right; font-size: 1.05rem; border: none;">{cell}</th>'
+    for i, cell in enumerate(rows[0]):
+        # Alternate colors for header
+        if i == 0:
+            bg_color = "#10b981"  # Green for strengths
+        else:
+            bg_color = "#ef4444"  # Red for weaknesses
+        html += f'<th style="background: {bg_color}; color: white; padding: 18px 20px; font-weight: 700; text-align: right; font-size: 1.1rem; border: none; font-family: Cairo, sans-serif;">{cell}</th>'
     html += '</tr></thead>'
     
     # Body rows
     if len(rows) > 1:
         html += '<tbody>'
         for i, row in enumerate(rows[1:]):
-            bg = '#f8fafc' if i % 2 == 0 else 'white'
-            html += f'<tr style="background: {bg};">'
-            for cell in row:
-                html += f'<td style="padding: 16px; border: 1px solid #e5e7eb; text-align: right; vertical-align: top; line-height: 1.8;">{cell}</td>'
+            html += '<tr style="border-bottom: 1px solid #e5e7eb;">'
+            for j, cell in enumerate(row):
+                # Light background for alternating columns
+                if j == 0:
+                    bg = '#f0fdf4'  # Light green
+                else:
+                    bg = '#fef2f2'  # Light red
+                html += f'<td style="padding: 20px; background: {bg}; text-align: right; vertical-align: top; line-height: 1.9; font-size: 1.0625rem; border-right: 1px solid #e5e7eb; font-family: Cairo, sans-serif; direction: rtl;">{cell}</td>'
             html += '</tr>'
         html += '</tbody>'
     
@@ -1477,46 +1486,59 @@ def convert_table_to_html(table_rows, border_color="#667eea"):
     return html
 
 def display_report_section(title: str, content: str, section_type: str = "default"):
-    """عرض القسم بتصميم بسيط ونظيف وجميل"""
+    """عرض القسم بتصميم حديث ونظيف بدون gradients"""
     import re
     
     # Clean content
     content = content.replace('\r\n', '\n').replace('\r', '\n')
     
-    # Convert links to clickable format
-    def make_link(match):
-        url = match.group(1)
-        return f'<a href="{url}" target="_blank" class="report-link">🔗 رابط</a>'
+    # Convert ALL raw URLs to clickable links (don't show full URL)
+    def convert_raw_url(match):
+        url = match.group(0)
+        # Extract tweet ID or username for display
+        if 'twitter.com' in url or 'x.com' in url:
+            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 عرض التغريدة</a>'
+        else:
+            return f'<a href="{url}" target="_blank" class="evidence-link">🔗 رابط</a>'
     
+    # Convert raw URLs (bullet points with URLs)
+    content = re.sub(r'•\s*(https?://[^\s<]+)', r'• \1', content)
+    content = re.sub(r'https?://[^\s<]+', convert_raw_url, content)
+    
+    # Convert [text](url) format
     def make_markdown_link(match):
         text = match.group(1)
         url = match.group(2)
-        return f'<a href="{url}" target="_blank" class="report-link">{text}</a>'
+        return f'<a href="{url}" target="_blank" class="evidence-link">{text}</a>'
     
-    content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link, content)
     content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
     
-    # Section colors - define first
+    # Section colors - solid colors, no gradients
     if section_type == "executive_summary":
         icon = "📋"
         border_color = "#3b82f6"
-        bg_color = "#f0f9ff"
+        bg_color = "#eff6ff"
+        header_bg = "#3b82f6"
     elif section_type == "pros_cons":
         icon = "⚖️"
         border_color = "#8b5cf6"
-        bg_color = "#faf5ff"
+        bg_color = "#f5f3ff"
+        header_bg = "#8b5cf6"
     elif section_type == "complaints":
         icon = "💬"
         border_color = "#ef4444"
         bg_color = "#fef2f2"
+        header_bg = "#ef4444"
     elif section_type == "insights":
         icon = "💡"
         border_color = "#10b981"
-        bg_color = "#f0fdf4"
+        bg_color = "#ecfdf5"
+        header_bg = "#10b981"
     else:
         icon = "📊"
         border_color = "#3b82f6"
         bg_color = "#f8fafc"
+        header_bg = "#3b82f6"
     
     # Remove markdown formatting
     content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
@@ -1561,58 +1583,83 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
     
     st.markdown(f"""
     <style>
-        .report-link {{
-            color: #2563eb;
+        .evidence-link {{
+            color: #fff;
+            background: #3b82f6;
             text-decoration: none;
             font-weight: 600;
-            padding: 4px 12px;
-            background: #eff6ff;
+            padding: 6px 14px;
             border-radius: 6px;
             display: inline-block;
-            margin: 2px 4px;
+            margin: 3px 5px;
             transition: all 0.2s;
+            font-size: 0.9375rem;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
         }}
-        .report-link:hover {{
-            background: #dbeafe;
+        .evidence-link:hover {{
+            background: #2563eb;
             transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
         }}
         .report-content p {{
             margin-bottom: 20px;
             line-height: 2;
+            direction: rtl;
+            text-align: right;
         }}
         .report-content strong {{
             font-weight: 700;
             color: #0f172a;
+        }}
+        .report-content ul, .report-content ol {{
+            direction: rtl;
+            text-align: right;
+            padding-right: 20px;
+        }}
+        .report-content li {{
+            direction: rtl;
+            text-align: right;
+            margin-bottom: 10px;
         }}
     </style>
     
     <div class="report-section" style="
         direction: rtl;
         background: white;
-        padding: 35px;
+        padding: 40px;
         border-radius: 16px;
-        margin-bottom: 30px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin-bottom: 35px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         border: 1px solid #e5e7eb;
     ">
-        <h2 style="
-            color: #111827;
-            border-bottom: 3px solid {border_color};
-            padding-bottom: 15px;
+        <div style="
+            background: {header_bg};
+            color: white;
+            padding: 20px 25px;
+            border-radius: 10px;
             margin-bottom: 25px;
-            font-weight: 800;
-            font-size: 1.75rem;
-            font-family: 'Cairo', sans-serif;
-        ">{icon} {title}</h2>
+            text-align: right;
+            direction: rtl;
+        ">
+            <h2 style="
+                color: white;
+                margin: 0;
+                font-weight: 800;
+                font-size: 1.75rem;
+                font-family: 'Cairo', sans-serif;
+            ">{icon} {title}</h2>
+        </div>
         <div class="report-content" style="
             background: {bg_color};
-            padding: 30px;
+            padding: 35px;
             border-radius: 12px;
-            border-right: 4px solid {border_color};
+            border-right: 5px solid {border_color};
             line-height: 2;
             font-size: 1.125rem;
             color: #1f2937;
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+            direction: rtl;
+            text-align: right;
         ">
             {content}
         </div>
@@ -1685,51 +1732,51 @@ def ai_detailed_report_page():
         default_start_date = datetime.now().date()
         default_end_date = datetime.now().date()
     
-    # Modern Header with Gradient
+    # Modern Header - Solid Color
     current_time = datetime.now().strftime("%d %B %Y - %H:%M")
     st.markdown(f"""
     <div style="
         direction: rtl;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #1e40af;
         color: white;
-        padding: 48px 40px;
-        border-radius: 20px;
+        padding: 50px 40px;
+        border-radius: 16px;
         text-align: center;
         margin-bottom: 35px;
-        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
         font-family: 'Cairo', sans-serif;
+        border: 3px solid #3b82f6;
     ">
         <h1 style="
-            font-size: 2.25rem; 
-            margin: 0 0 16px 0; 
+            font-size: 2.5rem; 
+            margin: 0 0 20px 0; 
             font-weight: 800;
-            letter-spacing: 0.01em;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             line-height: 1.3;
+            direction: rtl;
         ">📊 تقرير التحليل التفصيلي</h1>
         <h2 style="
-            font-size: 1.5rem; 
-            margin: 12px 0; 
+            font-size: 1.625rem; 
+            margin: 15px 0; 
             font-weight: 700;
-            opacity: 0.95;
-            letter-spacing: 0.02em;
+            direction: rtl;
         ">حساب تويتر: @{username}</h2>
         <div style="
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+            direction: rtl;
         ">
             <p style="
-                font-size: 1rem; 
-                opacity: 0.9;
-                margin: 8px 0;
+                font-size: 1.0625rem; 
+                margin: 10px 0;
                 font-weight: 500;
+                direction: rtl;
             ">📅 تاريخ التحليل: {current_time}</p>
             <p style="
-                font-size: 0.9375rem; 
-                opacity: 0.85;
-                margin: 8px 0;
+                font-size: 1rem; 
+                margin: 10px 0;
                 font-weight: 500;
+                direction: rtl;
             ">📈 حجم العينة: {len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
         </div>
     </div>
@@ -1823,19 +1870,20 @@ def ai_detailed_report_page():
             st.markdown("""
             <div style="
                 direction: rtl;
-                background: linear-gradient(to right, #fef3c7 0%, #fefce8 100%);
-                border-right: 5px solid #f59e0b;
-                padding: 18px 20px;
-                border-radius: 12px;
+                background: #fef3c7;
+                border-right: 6px solid #f59e0b;
+                padding: 20px 25px;
+                border-radius: 10px;
                 margin-top: 20px;
-                box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+                box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
                 font-family: 'Cairo', sans-serif;
+                text-align: right;
             ">
                 <span style="
                     font-size: 1.0625rem;
-                    font-weight: 600;
+                    font-weight: 700;
                     color: #92400e;
-                    letter-spacing: 0.01em;
+                    direction: rtl;
                 ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
             </div>
             """, unsafe_allow_html=True)
@@ -1847,19 +1895,20 @@ def ai_detailed_report_page():
         st.markdown(f"""
         <div style="
             direction: rtl;
-            background: linear-gradient(to right, #d1fae5 0%, #ecfdf5 100%);
-            border-right: 5px solid #10b981;
-            padding: 18px 20px;
-            border-radius: 12px;
+            background: #d1fae5;
+            border-right: 6px solid #10b981;
+            padding: 20px 25px;
+            border-radius: 10px;
             margin-top: 20px;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
             font-family: 'Cairo', sans-serif;
+            text-align: right;
         ">
             <span style="
                 font-size: 1.0625rem;
-                font-weight: 600;
+                font-weight: 700;
                 color: #065f46;
-                letter-spacing: 0.01em;
+                direction: rtl;
             ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}</span>
         </div>
         """, unsafe_allow_html=True)
