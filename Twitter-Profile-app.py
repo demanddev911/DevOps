@@ -1453,6 +1453,12 @@ def ai_detailed_report_page():
         st.info("👆 اضغط على الزر أعلاه لإنشاء التقرير التفصيلي للفترة المحددة")
         return
     
+    # Clear the AI report cache when generating a new report with different dates
+    # This ensures the AI generates fresh content based on the selected date range
+    if 'ai_report_cache' in st.session_state:
+        st.session_state.ai_report_cache.clear()
+        st.info("🔄 تم مسح التقارير السابقة - جاري إنشاء تقرير جديد للفترة المحددة...")
+    
     # Use filtered data for report generation
     df_comments = df_comments_filtered
     df_tweets = df_tweets_filtered
@@ -1503,7 +1509,10 @@ def ai_detailed_report_page():
 
 {date_range_info}
 
-التعليقات مع روابطها (جميع التعليقات المتاحة):
+**مهم جداً**: يجب أن يبدأ التقرير بعنوان يتضمن نطاق التاريخ المحدد:
+"ملخص تنفيذي لتحليل سمعة حساب @{username} بناءً على التعليقات (من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')})"
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
 {evidence_text}
 
 المطلوب - اكتب ملخص تنفيذي شامل (500-700 كلمة) يتضمن:
@@ -1531,7 +1540,9 @@ def ai_detailed_report_page():
 
 {date_range_info}
 
-التعليقات مع روابطها (جميع التعليقات المتاحة):
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
 {evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (700-1000 كلمة) على شكل جدول مقارنة:
@@ -1574,7 +1585,9 @@ def ai_detailed_report_page():
 
 {date_range_info}
 
-التعليقات مع روابطها (جميع التعليقات المتاحة):
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
 {evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (800-1200 كلمة) يتضمن:
@@ -1628,10 +1641,12 @@ def ai_detailed_report_page():
 
 {date_range_info}
 
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
 التحليلات السابقة:
 {all_previous_analysis}
 
-التعليقات مع روابطها (جميع التعليقات المتاحة):
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
 {evidence_text}
 
 المطلوب - اكتب قسماً كاملاً (1000-1500 كلمة) يتضمن تحليلاً عميقاً للأسباب خلف رأي الجمهور (Insights):
@@ -1694,91 +1709,6 @@ def ai_detailed_report_page():
     progress_bar.progress(100)
     status_text.success("✅ تم إنشاء التقرير التفصيلي بنجاح!")
 
-def ai_summary_report_page():
-    """صفحة ملخص التقرير الذكي"""
-    if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
-        st.info("📊 لازم تنشئ التقرير التفصيلي أول")
-        return
-    
-    required_sections = ["executive_summary", "pros_cons", "complaints_classification", "public_opinion_insights"]
-    
-    missing_sections = [s for s in required_sections if s not in st.session_state.ai_report_cache]
-    
-    if missing_sections:
-        st.warning("⚠️ لازم تنشئ التقرير التفصيلي أول قبل ما تشوف الملخص")
-        st.info("روح لتبويب 'التقرير التفصيلي' وانشئ التقرير أول")
-        return
-    
-    data = st.session_state['extracted_data']
-    df_tweets = data.get('tweets')
-    df_comments = data.get('comments')
-    username = data.get('username', 'User')
-    
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
-    
-    previous_sections = {}
-    sections_list = [
-        ("executive_summary", "ملخص تنفيذي واضح"),
-        ("pros_cons", "تحليل إيجابيات وسلبيات"),
-        ("complaints_classification", "تصنيف للشكاوى وتأثيرها على السمعة"),
-        ("public_opinion_insights", "أسباب خلف رأي الجمهور (Insight)"),
-    ]
-    
-    for section_key, section_title in sections_list:
-        if section_key in st.session_state.ai_report_cache:
-            previous_sections[section_title] = st.session_state.ai_report_cache[section_key]
-    
-    sections_summary = "\n\n".join([
-        f"=== {title} ===\n{content[:1200]}..."
-        for title, content in previous_sections.items()
-    ])
-    
-    comments_count = len(df_comments) if df_comments is not None and not df_comments.empty else 0
-    unique_commenters = df_comments['commenter_username'].nunique() if df_comments is not None and not df_comments.empty else 0
-    
-    with st.spinner("عم ننشئ الملخص الذكي..."):
-        prompt = f"""أنت محلل سمعة رقمية استراتيجي. اكتب ملخصاً تنفيذياً شاملاً ومركزاً لحساب @{username} بناءً على تحليل التعليقات فقط.
-
-حجم العينة المحللة:
-- إجمالي التعليقات المحللة: {comments_count:,}
-- عدد المعلقين: {unique_commenters:,}
-
-نتائج التحليل من جميع الأقسام السابقة (المبنية على التعليقات):
-{sections_summary}
-
-المطلوب - اكتب ملخصاً تنفيذياً شاملاً (1000-1500 كلمة) يتضمن:
-
-**القسم الأول: نظرة عامة على السمعة**
-- تلخيص الوضع العام للحساب بناءً على تحليل التعليقات
-- هل السمعة إيجابية، سلبية، أو محايدة؟
-
-**القسم الثاني: الإيجابيات والسلبيات**
-- أبرز الإيجابيات التي ذكرها المعلقون
-- أبرز السلبيات والشكاوى
-
-**القسم الثالث: الشكاوى الرئيسية**
-- أهم فئات الشكاوى وتأثيرها على السمعة
-- مستوى الخطورة
-
-**القسم الرابع: رؤى رأي الجمهور (Insights)**
-- الأسباب الحقيقية خلف الرضا أو عدم الرضا
-- الدوافع النفسية للمعلقين
-
-**القسم الخامس: التقييم النهائي والتوصيات**
-- تقييم شامل للسمعة
-- أهم 5-7 توصيات استراتيجية لتحسين السمعة
-- خطة عمل مقترحة
-
-**ملاحظة مهمة**: جميع التحليلات يجب أن تكون مبنية على التعليقات فقط وليس المنشورات.
-
-كن دقيقاً وموضوعياً. استخدم الأرقام. ما تستخدم رموز.
-الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-        
-        summary_content = generate_ai_section(mistral, "summary_conclusion", prompt, 12000)
-        
-        display_report_section("📋 الملخص التنفيذي الشامل", summary_content)
-        
-        st.success("✅ تم إنشاء الملخص الذكي بنجاح!")
 # ============================================================
 # DASHBOARD PAGE - COMPLETE WITH ALL CHARTS
 # ============================================================
@@ -2497,8 +2427,8 @@ def main():
                 st.session_state.clear()
                 st.rerun()
         
-        # Main Tabs - 3 tabs on the same level
-        tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "📄 Detailed Report", "📋 AI Summary"])
+        # Main Tabs - 2 tabs on the same level
+        tab1, tab2 = st.tabs(["📊 Dashboard", "📄 Detailed Report"])
         
         # ============================================================
         # TAB 1: DASHBOARD
@@ -2578,67 +2508,6 @@ Report Type: Detailed Report with Evidence Links
                         )
                     else:
                         st.info("ℹ️ Generate the report above first, then you can download it here.")
-        
-        # ============================================================
-        # TAB 3: AI SUMMARY
-        # ============================================================
-        with tab3:
-            if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
-                st.info("📊 Please extract data first from the Dashboard section")
-                if st.button("Extract Data", type="primary", key="extract_summary"):
-                    show_extraction_modal()
-            else:
-                data = st.session_state['extracted_data']
-                username = data.get('username', 'User')
-                
-                # Header for AI Summary
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #00cc88 0%, #00aa70 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📋 AI Report Summary</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive executive summary of all detailed analysis results for @{username}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Generate Summary Report
-                ai_summary_report_page()
-                
-                # Download Button for Summary
-                if "summary_conclusion" in st.session_state.ai_report_cache:
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        summary_report = f"""
-AI Report Summary - Twitter Account
-Account: @{username}
-Analysis Date: {datetime.now().strftime('%d %B %Y - %H:%M')}
-Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if data.get('comments') is not None else 0:,} comments
-
-{'='*60}
-Executive Summary
-{'='*60}
-
-{st.session_state.ai_report_cache.get('summary_conclusion', '')}
-
-{'='*60}
-Report ID: SUMMARY-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
-Issue Date: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
-Report Type: AI Executive Summary
-{'='*60}
-"""
-                        
-                        filename = f"Summary_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                        st.download_button(
-                            label="💾 Download AI Summary",
-                            data=summary_report.encode('utf-8'),
-                            file_name=filename,
-                            mime="text/plain",
-                            use_container_width=True,
-                            type="primary"
-                        )
-                else:
-                    st.info("ℹ️ Generate the summary above first, then you can download it here.")
             
     except Exception as e:
         st.error("An error occurred")
