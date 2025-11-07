@@ -1821,29 +1821,16 @@ def ai_detailed_report_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Create date filter UI
-    col1, col2, col3 = st.columns([1, 1, 0.6])
+    # Create date filter UI - Button on left side
+    col1, col2, col3 = st.columns([0.6, 1, 1])
     
     with col1:
-        st.markdown("""
-        <p style="
-            direction: rtl; 
-            margin-bottom: 10px; 
-            color: #334155; 
-            font-weight: 700;
-            font-size: 0.9375rem;
-            font-family: 'Cairo', sans-serif;
-            letter-spacing: 0.01em;
-        ">📆 تاريخ البداية (من)</p>
-        """, unsafe_allow_html=True)
-        start_date = st.date_input(
-            "تاريخ البداية",
-            value=default_start_date,
-            min_value=default_start_date,
-            max_value=default_end_date,
-            help="اختر تاريخ البداية لنطاق التقرير",
-            key="report_start_date",
-            label_visibility="collapsed"
+        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        generate_button = st.button(
+            "🔍 إنشاء التقرير",
+            type="primary",
+            use_container_width=True,
+            key="generate_detailed_report_btn"
         )
     
     with col2:
@@ -1869,12 +1856,25 @@ def ai_detailed_report_page():
         )
     
     with col3:
-        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
-        generate_button = st.button(
-            "🔍 إنشاء التقرير",
-            type="primary",
-            use_container_width=True,
-            key="generate_detailed_report_btn"
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 10px; 
+            color: #334155; 
+            font-weight: 700;
+            font-size: 0.9375rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: 0.01em;
+        ">📆 تاريخ البداية (من)</p>
+        """, unsafe_allow_html=True)
+        start_date = st.date_input(
+            "تاريخ البداية",
+            value=default_start_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ البداية لنطاق التقرير",
+            key="report_start_date",
+            label_visibility="collapsed"
         )
     
     # Validation
