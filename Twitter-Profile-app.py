@@ -1437,163 +1437,37 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
         return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
 
 def display_report_section(title: str, content: str, section_type: str = "default"):
-    """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط وتصميم حديث محسّن"""
+    """عرض القسم بتصميم بسيط ونظيف وجميل"""
     import re
     
-    # Step 1: Convert line breaks for processing
+    # Clean content
     content = content.replace('\r\n', '\n').replace('\r', '\n')
+    
+    # Convert links to clickable format
+    def make_link(match):
+        url = match.group(1)
+        return f'<a href="{url}" target="_blank" class="report-link">🔗 رابط</a>'
+    
+    def make_markdown_link(match):
+        text = match.group(1)
+        url = match.group(2)
+        return f'<a href="{url}" target="_blank" class="report-link">{text}</a>'
+    
+    content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link, content)
+    content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link, content)
+    
+    # Remove markdown formatting
+    content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
+    content = content.replace('*', '')
+    content = re.sub(r'^#+\s+', '', content, flags=re.MULTILINE)
+    content = re.sub(r'\n#+\s+', '\n', content)
+    
+    # Convert to HTML with simple formatting
+    content = content.replace('\n\n', '</p><p>')
+    content = f'<p>{content}</p>'
     content = content.replace('\n', '<br>')
     
-    # Step 2: Handle markdown links FIRST (before converting tables which might contain links)
-    def make_link_clickable(match):
-        url = match.group(1)
-        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; padding: 4px 10px; background: #eff6ff; border-radius: 6px; transition: all 0.2s; display: inline-block; margin: 2px 4px; border-bottom: 2px solid #93c5fd;">🔗 رابط الإثبات</a>'
-    
-    def make_markdown_link_clickable(match):
-        link_text = match.group(1)
-        url = match.group(2)
-        return f'<a href="{url}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600; padding: 4px 10px; background: #eff6ff; border-radius: 6px; transition: all 0.2s; display: inline-block; margin: 2px 4px; border-bottom: 2px solid #93c5fd;">🔗 {link_text}</a>'
-    
-    # Convert [الإثبات: url] format
-    content = re.sub(r'\[الإثبات:\s*(https?://[^\]]+)\]', make_link_clickable, content)
-    
-    # Convert [text](url) format - standard markdown
-    content = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', make_markdown_link_clickable, content)
-    
-    # Step 3: Convert markdown tables to HTML tables
-    def convert_markdown_table(text):
-        lines = text.split('<br>')
-        table_lines = []
-        in_table = False
-        table_content = []
-        
-        for line in lines:
-            line_stripped = line.strip()
-            if '|' in line_stripped and line_stripped.count('|') >= 2:
-                if not in_table:
-                    in_table = True
-                    table_content = []
-                table_content.append(line)
-            else:
-                if in_table:
-                    # Process the table
-                    html_table = process_table(table_content)
-                    table_lines.append(html_table)
-                    in_table = False
-                    table_content = []
-                table_lines.append(line)
-        
-        # Handle table at end
-        if in_table and table_content:
-            html_table = process_table(table_content)
-            table_lines.append(html_table)
-        
-        return '<br>'.join(table_lines)
-    
-    def process_table(table_lines):
-        if len(table_lines) < 2:
-            return '<br>'.join(table_lines)
-        
-        # Extract rows
-        rows = []
-        for line in table_lines:
-            line_str = str(line).strip()
-            if '---' in line_str or '|-' in line_str:  # Skip separator line
-                continue
-            cells = [cell.strip() for cell in line_str.split('|')]
-            cells = [c for c in cells if c]  # Remove empty cells
-            if cells:
-                rows.append(cells)
-        
-        if not rows:
-            return ''
-        
-        # Build HTML table
-        html = '<div style="margin: 25px 0; overflow-x: auto;">'
-        html += '<table style="width: 100%; border-collapse: collapse; direction: rtl; box-shadow: 0 4px 12px rgba(0,0,0,0.12); border-radius: 12px; overflow: hidden; background: white;">'
-        
-        # Header row
-        html += '<thead><tr>'
-        for cell in rows[0]:
-            html += f'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 18px 16px; font-weight: 700; text-align: right; border: none; font-size: 1.05rem;">{cell}</th>'
-        html += '</tr></thead>'
-        
-        # Body rows
-        if len(rows) > 1:
-            html += '<tbody>'
-            for i, row in enumerate(rows[1:]):
-                bg = '#f8fafc' if i % 2 == 0 else 'white'
-                html += f'<tr style="background: {bg}; transition: background 0.2s;" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'{bg}\'">'
-                for cell in row:
-                    html += f'<td style="padding: 18px 16px; border: 1px solid #e2e8f0; text-align: right; line-height: 1.9; vertical-align: top; font-size: 1.0625rem;">{cell}</td>'
-                html += '</tr>'
-            html += '</tbody>'
-        
-        html += '</table></div>'
-        return html
-    
-    content = convert_markdown_table(content)
-    
-    # Step 4: Handle markdown headings (convert ### ## # to styled divs)
-    content = re.sub(
-        r'<br>\s*###\s+(.+?)(?=<br>|$)', 
-        r'<br><div style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 28px 0 14px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; font-family: Cairo, sans-serif;">\1</div>', 
-        content
-    )
-    content = re.sub(
-        r'<br>\s*##\s+(.+?)(?=<br>|$)', 
-        r'<br><div style="font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 32px 0 16px 0; padding-bottom: 12px; border-bottom: 3px solid #cbd5e1; font-family: Cairo, sans-serif;">\1</div>', 
-        content
-    )
-    content = re.sub(
-        r'<br>\s*#\s+(.+?)(?=<br>|$)', 
-        r'<br><div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 36px 0 18px 0; font-family: Cairo, sans-serif;">\1</div>', 
-        content
-    )
-    
-    # Remove standalone # symbols
-    content = re.sub(r'<br>\s*#+\s*<br>', r'<br>', content)
-    content = re.sub(r'^\s*#+\s*<br>', r'', content)
-    
-    # Step 5: Convert markdown bold **text** to HTML
-    content = re.sub(
-        r'\*\*(.+?)\*\*', 
-        r'<strong style="color: #0f172a; font-weight: 700;">\1</strong>', 
-        content
-    )
-    
-    # Remove any remaining single * 
-    content = content.replace('*', '')
-    
-    # Step 6: Handle bullet points (convert - to styled bullets)
-    content = re.sub(
-        r'<br>\s*[-•]\s+', 
-        r'<br><div style="margin: 10px 0 10px 20px; padding-right: 20px;"><span style="color: #3b82f6; margin-left: 10px; font-weight: 700;">•</span>', 
-        content
-    )
-    
-    # Step 7: Handle numbered lists with better formatting
-    content = re.sub(
-        r'<br>\s*(\d+)\.\s+', 
-        r'<br><div style="margin: 12px 0 12px 20px; padding-right: 20px;"><strong style="color: #3b82f6; font-size: 1.05rem; margin-left: 10px;">\1.</strong> ', 
-        content
-    )
-    
-    # Step 8: Add proper paragraphs (split by double line breaks)
-    content = re.sub(r'<br>\s*<br>', r'</div><div style="margin-bottom: 16px;">', content)
-    content = '<div style="margin-bottom: 16px;">' + content + '</div>'
-    
-    # Step 9: Clean up excessive spacing
-    content = re.sub(r'(<br>\s*){3,}', r'<br><br>', content)
-    content = re.sub(r'<div style="margin-bottom: 16px;"></div>', '', content)
-    
-    # Step 10: Fix any unclosed divs from lists
-    content = content.replace('<br></div>', '</div><br>')
-    
-    # Final cleanup
-    content = content.strip()
-    
-    # Different section styles based on type
+    # Section colors
     if section_type == "executive_summary":
         icon = "📋"
         border_color = "#3b82f6"
@@ -1621,41 +1495,59 @@ def display_report_section(title: str, content: str, section_type: str = "defaul
         text_color = "#1e293b"
     
     st.markdown(f"""
-    <div style="
+    <style>
+        .report-link {{
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 4px 12px;
+            background: #eff6ff;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 2px 4px;
+            transition: all 0.2s;
+        }}
+        .report-link:hover {{
+            background: #dbeafe;
+            transform: translateY(-1px);
+        }}
+        .report-content p {{
+            margin-bottom: 20px;
+            line-height: 2;
+        }}
+        .report-content strong {{
+            font-weight: 700;
+            color: #0f172a;
+        }}
+    </style>
+    
+    <div class="report-section" style="
         direction: rtl;
-        background-color: white;
-        padding: 32px;
+        background: white;
+        padding: 35px;
         border-radius: 16px;
         margin-bottom: 30px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border: 1px solid #e5e7eb;
     ">
         <h2 style="
-            color: #1e293b;
-            border-bottom: 4px solid {border_color};
-            padding-bottom: 14px;
-            margin-bottom: 26px;
+            color: #111827;
+            border-bottom: 3px solid {border_color};
+            padding-bottom: 15px;
+            margin-bottom: 25px;
             font-weight: 800;
-            font-size: 1.625rem;
+            font-size: 1.75rem;
             font-family: 'Cairo', sans-serif;
-            letter-spacing: 0.01em;
         ">{icon} {title}</h2>
-        <div style="
-            background: linear-gradient(to bottom, {bg_color} 0%, #ffffff 100%);
-            padding: 32px;
-            border-radius: 14px;
-            border-right: 5px solid {border_color};
-            line-height: 2.1;
+        <div class="report-content" style="
+            background: {bg_color};
+            padding: 30px;
+            border-radius: 12px;
+            border-right: 4px solid {border_color};
+            line-height: 2;
             font-size: 1.125rem;
-            text-align: right;
-            color: {text_color};
+            color: #1f2937;
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
-            letter-spacing: 0.015em;
-            word-spacing: 0.05em;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            text-rendering: optimizeLegibility;
         ">
             {content}
         </div>
