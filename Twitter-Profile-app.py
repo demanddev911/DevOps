@@ -2552,11 +2552,15 @@ def main():
         # Header Section
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
-            logo_col, title_col = st.columns([0.3, 2.7])
-            with logo_col:
-                st.image("https://www.google.com/url?sa=i&url=https%3A%2F%2Fteeone.co.uk%2Fproducts%2Ffree-embroidery-setup&psig=AOvVaw2HdssAv25rzi30TOWQRcwV&ust=1762695846916000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCJjy1vDX4pADFQAAAAAdAAAAABAE", width=60)
-            with title_col:
-                st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
+            # Aligned logo and title
+            st.markdown("""
+                <div style='display: flex; align-items: center; gap: 15px; margin-top: 8px;'>
+                    <img src='https://www.google.com/url?sa=i&url=https%3A%2F%2Fteeone.co.uk%2Fproducts%2Ffree-embroidery-setup&psig=AOvVaw2HdssAv25rzi30TOWQRcwV&ust=1762695846916000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCJjy1vDX4pADFQAAAAAdAAAAABAE' 
+                         width='60' 
+                         style='vertical-align: middle;'>
+                    <h3 style='margin: 0; padding: 0; line-height: 1;'>X Analytics Suite</h3>
+                </div>
+            """, unsafe_allow_html=True)
         with col2:
             if st.button("Start Extraction", type="primary", use_container_width=True, key="main_extraction_btn"):
                 show_extraction_modal()
@@ -2567,6 +2571,20 @@ def main():
         
         # Main Tabs - 3 tabs on the same level
         tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "📄 Detailed Report", "📋 AI Summary"])
+        
+        # Add your tab content here
+        with tab1:
+            st.write("Dashboard content goes here")
+        
+        with tab2:
+            st.write("Detailed Report content goes here")
+        
+        with tab3:
+            st.write("AI Summary content goes here")
+            
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        st.exception(e)
         
         # ============================================================
         # TAB 1: DASHBOARD
