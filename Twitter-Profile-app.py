@@ -27,9 +27,22 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
+import sys
+import os
+
+# Add current directory to Python path for Streamlit Cloud compatibility
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 # Import enhanced Mistral analyzer with rate limiting
-from mistral_rate_limiter import EnhancedMistralAnalyzer
+try:
+    from mistral_rate_limiter import EnhancedMistralAnalyzer
+    RATE_LIMITER_AVAILABLE = True
+except ImportError as e:
+    RATE_LIMITER_AVAILABLE = False
+    print(f"Warning: Enhanced rate limiter not available: {e}")
+    # Will use legacy MistralAnalyzer as fallback
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -1891,16 +1904,21 @@ def ai_detailed_report_page():
     if 'ai_report_cache' in st.session_state:
         st.session_state.ai_report_cache.clear()
 
-    # Initialize enhanced analyzer with smart rate limiting
-    mistral = EnhancedMistralAnalyzer(
-        api_keys=MISTRAL_KEYS,
-        api_url=MISTRAL_API_URL,
-        model=MISTRAL_MODEL,
-        temperature=MISTRAL_TEMPERATURE,
-        max_tokens=MISTRAL_MAX_TOKENS,
-        rate_limit_per_key=5,  # 5 requests per minute per key
-        timeout=60
-    )
+    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
+    if RATE_LIMITER_AVAILABLE:
+        mistral = EnhancedMistralAnalyzer(
+            api_keys=MISTRAL_KEYS,
+            api_url=MISTRAL_API_URL,
+            model=MISTRAL_MODEL,
+            temperature=MISTRAL_TEMPERATURE,
+            max_tokens=MISTRAL_MAX_TOKENS,
+            rate_limit_per_key=5,  # 5 requests per minute per key
+            timeout=60
+        )
+    else:
+        # Fallback to legacy analyzer
+        mistral = MistralAnalyzer(MISTRAL_KEYS)
+
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
@@ -2469,16 +2487,20 @@ def ai_summary_report_page():
     df_comments = data.get('comments')
     username = data.get('username', 'User')
 
-    # Initialize enhanced analyzer with smart rate limiting
-    mistral = EnhancedMistralAnalyzer(
-        api_keys=MISTRAL_KEYS,
-        api_url=MISTRAL_API_URL,
-        model=MISTRAL_MODEL,
-        temperature=MISTRAL_TEMPERATURE,
-        max_tokens=MISTRAL_MAX_TOKENS,
-        rate_limit_per_key=5,  # 5 requests per minute per key
-        timeout=60
-    )
+    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
+    if RATE_LIMITER_AVAILABLE:
+        mistral = EnhancedMistralAnalyzer(
+            api_keys=MISTRAL_KEYS,
+            api_url=MISTRAL_API_URL,
+            model=MISTRAL_MODEL,
+            temperature=MISTRAL_TEMPERATURE,
+            max_tokens=MISTRAL_MAX_TOKENS,
+            rate_limit_per_key=5,  # 5 requests per minute per key
+            timeout=60
+        )
+    else:
+        # Fallback to legacy analyzer
+        mistral = MistralAnalyzer(MISTRAL_KEYS)
 
     previous_sections = {}
     sections_list = [
