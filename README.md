@@ -38,7 +38,11 @@ A professional, enterprise-grade Twitter/X analytics dashboard with AI-powered r
 - **Input Validation**: Comprehensive sanitization and validation
 - **Connection Pooling**: Optimized HTTP connections with retry strategies
 - **Caching System**: Multi-level caching for improved performance
-- **Rate Limit Handling**: Automatic backoff and retry mechanisms
+- **Advanced Rate Limiting**: NEW! Token bucket rate limiter with circuit breaker pattern
+  - Intelligent key health tracking and automatic rotation
+  - Exponential backoff with jitter
+  - Per-key rate limiting and cooldown management
+  - Self-healing circuit breakers
 - **Logging**: Comprehensive error tracking and debugging
 
 ### 📤 Export Options
@@ -140,12 +144,14 @@ Navigate to the **"🎯 AI Detailed Report"** tab:
 ```
 workspace/
 ├── Twitter-Profile-app.py      # Main application
+├── mistral_rate_limiter.py     # Enhanced rate limiter module
 ├── requirements.txt            # Python dependencies
 ├── config.toml                 # Streamlit configuration
 ├── .env                        # Environment variables (not in git)
 ├── .env.example                # Environment template
 ├── .gitignore                  # Git ignore rules
 ├── README.md                   # This file
+├── RATE_LIMITER_GUIDE.md      # Rate limiter documentation
 └── app.log                     # Application logs
 ```
 
@@ -194,6 +200,18 @@ workspace/
 | `CONNECTION_TIMEOUT` | API timeout in seconds | 15 | No |
 | `MISTRAL_TEMPERATURE` | AI temperature setting | 0.3 | No |
 | `MISTRAL_MAX_TOKENS` | Max tokens per AI request | 4000 | No |
+
+### Rate Limiting Configuration
+
+The new Enhanced Rate Limiter provides intelligent API request management:
+
+```python
+# Configure in Twitter-Profile-app.py
+rate_limit_per_key=5    # Requests per minute per key
+timeout=60              # Request timeout in seconds
+```
+
+For detailed configuration and usage, see [RATE_LIMITER_GUIDE.md](RATE_LIMITER_GUIDE.md)
 
 ### Streamlit Configuration
 
@@ -327,7 +345,17 @@ tail -f app.log
 
 ## 🔄 Updates & Changelog
 
-### Version 9.0 (Current)
+### Version 10.0 (Current)
+- ✅ **NEW**: Advanced Rate Limiting System
+  - Token bucket rate limiter with circuit breaker pattern
+  - Intelligent key health tracking and automatic rotation
+  - Exponential backoff with jitter
+  - Per-key cooldown management
+  - Comprehensive monitoring and diagnostics
+- ✅ Enhanced error handling and recovery
+- ✅ Improved timeout management
+
+### Version 9.0 (Previous)
 - ✅ Environment-based configuration
 - ✅ Sentiment analysis for tweets and comments
 - ✅ Enhanced error handling and logging
