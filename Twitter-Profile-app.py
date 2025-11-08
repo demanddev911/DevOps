@@ -2554,7 +2554,7 @@ def main():
         with col1:
             logo_col, title_col = st.columns([0.3, 2.7])
             with logo_col:
-                st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU", width=60)
+                st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU", width=100)
             with title_col:
                 st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
         with col2:
