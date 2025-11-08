@@ -3077,16 +3077,6 @@ def main():
                 data = st.session_state['extracted_data']
                 username = data.get('username', 'User')
                 
-                # Header for Detailed Report
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📄 Detailed Report with Evidence Links</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive and detailed analysis of @{username} with direct links to supporting tweets
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-                
                 # Generate Detailed Report
                 ai_detailed_report_page()
                 
