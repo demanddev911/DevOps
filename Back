@@ -67,8 +67,8 @@ st.markdown("""
     }
     
     .main {
-        background: #e8e8e8;
-        padding: 1rem;
+        background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
     }
     
     .block-container {
@@ -206,7 +206,7 @@ st.markdown("""
     .report-content {
         font-size: 1rem;
         line-height: 2;
-        color: #2d3748;
+        color: #000000;
         font-family: 'Cairo', sans-serif;
         text-align: justify;
     }
@@ -378,6 +378,128 @@ st.markdown("""
     
     ::-webkit-scrollbar-thumb:hover {
         background: #999;
+    }
+    
+    /* Detailed Report Page Enhancements - Unified Font */
+    .main [direction="rtl"],
+    .main [direction="rtl"] *,
+    .main div[style*="direction: rtl"],
+    .main div[style*="direction: rtl"] *,
+    .report-section,
+    .report-section *,
+    .report-content,
+    .report-content * {
+        font-family: 'Cairo', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    
+    /* Simple table row hover */
+    .main table tbody tr:hover {
+        background: #f1f5f9 !important;
+    }
+    
+    .main table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        direction: rtl;
+        text-align: right;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px;
+        font-weight: 700;
+        border: none;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table td {
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        line-height: 1.8;
+        font-size: 0.9375rem;
+        color: #000000;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    
+    .main table tr:hover {
+        background-color: #f1f5f9;
+        transition: background-color 0.2s ease;
+    }
+    
+    .main ul, .main ol {
+        line-height: 2;
+        margin: 15px 0;
+        padding-right: 25px;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main li {
+        margin-bottom: 12px;
+        color: #000000;
+        font-size: 1rem;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main strong {
+        font-weight: 700;
+        color: #000000;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main p {
+        line-height: 2.1;
+        margin-bottom: 18px;
+        color: #000000;
+        font-size: 1.125rem;
+        font-weight: 400;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    /* Better text for divs with direction rtl */
+    .main div[direction="rtl"] p,
+    .main div[style*="direction: rtl"] p {
+        font-size: 1.125rem;
+        line-height: 2.1;
+        color: #000000;
+        margin-bottom: 18px;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main a:hover {
+        color: #1e40af;
+        border-bottom-color: #93c5fd;
+    }
+    
+    .main h1, .main h2, .main h3, .main h4 {
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 700;
+        color: #000000;
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -1448,6 +1570,290 @@ def ai_detailed_report_page():
     if df_tweets is None or df_tweets.empty:
         st.warning("ما فيه بيانات متوفرة حق التحليل")
         return
+    
+    # Parse dates in dataframes if not already parsed
+    if 'parsed_date' not in df_tweets.columns:
+        df_tweets = process_dataframe_for_analysis(df_tweets.copy())
+    if df_comments is not None and not df_comments.empty and 'parsed_date' not in df_comments.columns:
+        df_comments_temp = df_comments.copy()
+        if 'comment_date' in df_comments_temp.columns:
+            df_comments_temp['created_at'] = df_comments_temp['comment_date']
+            df_comments_temp = process_dataframe_for_analysis(df_comments_temp)
+            df_comments = df_comments_temp
+    
+    # Get min and max dates from the data
+    try:
+        min_tweet_date = df_tweets['parsed_date'].min()
+        max_tweet_date = df_tweets['parsed_date'].max()
+        min_comment_date = df_comments['parsed_date'].min() if df_comments is not None and not df_comments.empty and 'parsed_date' in df_comments.columns else min_tweet_date
+        max_comment_date = df_comments['parsed_date'].max() if df_comments is not None and not df_comments.empty and 'parsed_date' in df_comments.columns else max_tweet_date
+        
+        overall_min_date = min(min_tweet_date, min_comment_date)
+        overall_max_date = max(max_tweet_date, max_comment_date)
+        
+        # Convert to date objects for the date picker
+        default_start_date = overall_min_date.date() if pd.notna(overall_min_date) else datetime.now().date()
+        default_end_date = overall_max_date.date() if pd.notna(overall_max_date) else datetime.now().date()
+    except Exception as e:
+        # Fallback to current date if parsing fails
+        default_start_date = datetime.now().date()
+        default_end_date = datetime.now().date()
+    
+    # Clean Professional Header
+    current_time = datetime.now().strftime("%d %B %Y - %H:%M")
+    st.markdown(f"""
+    <div style="
+        direction: rtl;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        font-family: 'Cairo', sans-serif;
+        border-right: 5px solid #3b82f6;
+    ">
+        <h1 style="
+            font-size: 2.25rem; 
+            margin: 0 0 12px 0; 
+            font-weight: 700;
+            direction: rtl;
+            color: #000000;
+        ">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="
+            font-size: 1.25rem; 
+            margin: 0 0 20px 0; 
+            font-weight: 600;
+            direction: rtl;
+            color: #000000;
+        ">حساب تويتر: @{username}</h2>
+        <div style="
+            display: flex;
+            gap: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            direction: rtl;
+        ">
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📅 تاريخ التحليل</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{current_time}</p>
+            </div>
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📈 حجم العينة</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{len(df_tweets):,} تغريدة | {len(df_comments) if df_comments is not None and not df_comments.empty else 0:,} تعليق</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Clean Date Filter Section
+    st.markdown("""
+    <div style="
+        direction: rtl;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-right: 5px solid #10b981;
+    ">
+        <h2 style="
+            color: #000000;
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.375rem;
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+        ">📅 تصفية حسب التاريخ</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create date filter UI - Button on left side
+    col1, col2, col3 = st.columns([0.6, 1, 1])
+    
+    with col1:
+        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        generate_button = st.button(
+            "🔍 إنشاء التقرير",
+            type="primary",
+            use_container_width=True,
+            key="generate_detailed_report_btn"
+        )
+    
+    with col2:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ النهاية (إلى)</p>
+        """, unsafe_allow_html=True)
+        end_date = st.date_input(
+            "تاريخ النهاية",
+            value=default_end_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ النهاية لنطاق التقرير",
+            key="report_end_date",
+            label_visibility="collapsed"
+        )
+    
+    with col3:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ البداية (من)</p>
+        """, unsafe_allow_html=True)
+        start_date = st.date_input(
+            "تاريخ البداية",
+            value=default_start_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ البداية لنطاق التقرير",
+            key="report_start_date",
+            label_visibility="collapsed"
+        )
+    
+    # Validation
+    date_validation_error = None
+    if start_date and end_date:
+        if start_date > end_date:
+            date_validation_error = True
+            st.markdown("""
+            <div style="
+                direction: rtl;
+                background: #fef3c7;
+                border-right: 4px solid #f59e0b;
+                padding: 20px 25px;
+                border-radius: 8px;
+                margin-top: 20px;
+                font-family: 'Cairo', sans-serif;
+                text-align: right;
+            ">
+                <span style="
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #92400e;
+                    direction: rtl;
+                ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        date_validation_error = True
+    
+    # Display validation success
+    if not date_validation_error and generate_button:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            background: #d1fae5;
+            border-right: 4px solid #10b981;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Cairo', sans-serif;
+            text-align: right;
+        ">
+            <span style="
+                font-size: 1rem;
+                font-weight: 600;
+                color: #065f46;
+                direction: rtl;
+            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} ألى {end_date.strftime('%Y-%m-%d')}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if date_validation_error:
+        st.stop()
+    
+    if not generate_button:
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            👆 اضغط على زر إنشاء التقرير لبدء التحليل
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Filter data based on date range
+    start_datetime = pd.Timestamp(start_date)
+    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+    
+    # Filter tweets
+    df_tweets = df_tweets[
+        (df_tweets['parsed_date'] >= start_datetime) & 
+        (df_tweets['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Filter comments
+    if df_comments is not None and not df_comments.empty:
+        df_comments = df_comments[
+            (df_comments['parsed_date'] >= start_datetime) & 
+            (df_comments['parsed_date'] <= end_datetime)
+        ].copy()
+    
+    # Check if filtered data is empty
+    if df_tweets.empty:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ لا توجد بيانات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+    
+    # Clear the AI report cache when generating a new report with different dates
+    if 'ai_report_cache' in st.session_state:
+        st.session_state.ai_report_cache.clear()
     
     mistral = MistralAnalyzer(MISTRAL_KEYS)
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
