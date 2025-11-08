@@ -28,6 +28,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
 
+# Import enhanced Mistral analyzer with rate limiting
+from mistral_rate_limiter import EnhancedMistralAnalyzer
+
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -981,44 +984,65 @@ class TwitterExtractor:
         return all_comments
 
 # ============================================================
-# MISTRAL AI ANALYZER
+# MISTRAL AI ANALYZER (LEGACY - DEPRECATED)
+# NOTE: This class is kept for backward compatibility only.
+# New code should use EnhancedMistralAnalyzer from mistral_rate_limiter.py
+# which includes advanced rate limiting, circuit breakers, and health tracking.
 # ============================================================
 class MistralAnalyzer:
     def __init__(self, api_keys: List[str]):
         self.api_keys = api_keys
         self.current_key_index = 0
+        self.failed_keys = set()  # Track failed keys
         self.session = self._create_session()
+        self.request_timeout = 60  # Reduced from 120 for faster failover
         
     def _create_session(self) -> requests.Session:
         session = requests.Session()
+        # Optimized retry strategy for faster failover
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[500, 502, 503, 504],  # Removed 429 to handle manually
+            total=2,  # Reduced retries
+            backoff_factor=0.5,  # Faster backoff
+            status_forcelist=[500, 502, 503, 504],
             allowed_methods=["POST"]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,  # Connection pooling
+            pool_maxsize=20
+        )
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
     
     def _get_current_key(self) -> str:
-        """Get the current API key"""
+        """Get the current API key, skipping known failed keys"""
+        attempts = 0
+        while attempts < len(self.api_keys):
+            key = self.api_keys[self.current_key_index]
+            if key not in self.failed_keys:
+                return key
+            self._switch_to_next_key()
+            attempts += 1
+        # If all keys failed, clear failed set and retry
+        self.failed_keys.clear()
         return self.api_keys[self.current_key_index]
     
     def _switch_to_next_key(self) -> bool:
         """Switch to next API key. Returns True if switched, False if no more keys"""
-        if self.current_key_index < len(self.api_keys) - 1:
-            self.current_key_index += 1
-            return True
-        return False
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        return True
     
     def _reset_key_index(self):
         """Reset to first key for next request"""
         self.current_key_index = 0
+    
+    def _mark_key_failed(self, key: str):
+        """Mark a key as temporarily failed"""
+        self.failed_keys.add(key)
 
     def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with automatic key switching on rate limits/timeouts"""
+        """Optimized analyze with faster failover and smart key management"""
         payload = {
             "model": MISTRAL_MODEL,
             "messages": [{"role": "user", "content": prompt}],
@@ -1026,89 +1050,87 @@ class MistralAnalyzer:
             "max_tokens": max_tokens
         }
         
-        # Reset to first key at start of each new request
-        self._reset_key_index()
+        # Try up to 8 different keys before giving up (increased from 5)
+        max_attempts = min(8, len(self.api_keys))
         
-        # Try all available keys
-        keys_tried = 0
-        while keys_tried < len(self.api_keys):
+        for attempt in range(max_attempts):
             current_key = self._get_current_key()
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {current_key}"
             }
             
-            # Retry current key up to 2 times for transient errors
-            for attempt in range(2):
-                try:
-                    response = self.session.post(
-                        MISTRAL_API_URL,
-                        headers=headers,
-                        json=payload,
-                        timeout=120
-                    )
-                    
-                    if response.status_code == 200:
+            try:
+                response = self.session.post(
+                    MISTRAL_API_URL,
+                    headers=headers,
+                    json=payload,
+                    timeout=self.request_timeout
+                )
+                
+                if response.status_code == 200:
+                    try:
                         return response.json()['choices'][0]['message']['content']
-                    
-                    elif response.status_code == 429:
-                        # Rate limit hit - switch to next key immediately
-                        if self._switch_to_next_key():
-                            keys_tried += 1
-                            break  # Break inner loop to try next key
-                        else:
-                            # No more keys available, wait and retry current key
-                            time.sleep(2)
-                            continue
-                    
-                    elif response.status_code >= 500:
-                        # Server error - retry with same key
-                        if attempt < 1:
-                            time.sleep(2)
-                            continue
-                        else:
-                            # After retries, try next key
-                            if self._switch_to_next_key():
-                                keys_tried += 1
-                                break
-                            return None
-                    
-                    else:
-                        # Other error - try next key
-                        if self._switch_to_next_key():
-                            keys_tried += 1
-                            break
+                    except (KeyError, ValueError, json.JSONDecodeError):
                         return None
                 
-                except requests.exceptions.Timeout:
-                    # Timeout - switch to next key immediately
-                    if self._switch_to_next_key():
-                        keys_tried += 1
-                        break  # Try next key
-                    elif attempt < 1:
-                        time.sleep(2)
-                        continue
-                    return None
+                elif response.status_code == 429:
+                    # Rate limit - mark key and switch immediately
+                    self._mark_key_failed(current_key)
+                    self._switch_to_next_key()
+                    continue
                 
-                except requests.exceptions.RequestException:
-                    # Connection error - try next key
-                    if self._switch_to_next_key():
-                        keys_tried += 1
-                        break
-                    elif attempt < 1:
-                        time.sleep(2)
-                        continue
-                    return None
+                elif response.status_code >= 500:
+                    # Server error - switch to next key
+                    self._switch_to_next_key()
+                    continue
                 
-                except (KeyError, ValueError, json.JSONDecodeError):
-                    return None
+                else:
+                    # Other error - try next key
+                    self._switch_to_next_key()
+                    continue
             
-            # If we broke out of inner loop, continue with next key
-            if keys_tried < len(self.api_keys):
+            except requests.exceptions.Timeout:
+                # Timeout - switch immediately, no retry
+                self._mark_key_failed(current_key)
+                self._switch_to_next_key()
                 continue
-            break
+            
+            except requests.exceptions.RequestException:
+                # Connection error - switch to next key
+                self._switch_to_next_key()
+                continue
+            
+            except Exception:
+                # Unknown error - try next key
+                self._switch_to_next_key()
+                continue
         
         return None
+    
+    def analyze_batch(self, prompts: List[tuple], max_workers: int = 3) -> Dict[str, str]:
+        """Parallel batch processing of multiple prompts"""
+        results = {}
+        
+        def process_single(section_key: str, prompt: str, max_tokens: int):
+            content = self.analyze(prompt, max_tokens)
+            return section_key, content
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(process_single, sk, p, mt): sk 
+                for sk, p, mt in prompts
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    section_key, content = future.result(timeout=180)
+                    if content:
+                        results[section_key] = content
+                except Exception:
+                    pass
+        
+        return results
 
 # ============================================================
 # DATA PROCESSING
@@ -1507,13 +1529,49 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
+    
+    # First attempt with full prompt
     result = mistral.analyze(prompt, max_tokens)
+    
     if result:
         cleaned_result = result.replace('**', '').replace('*', '').strip()
         st.session_state.ai_report_cache[section_name] = cleaned_result
         return cleaned_result
-    else:
-        return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
+    
+    # Fallback: Try with reduced prompt (shorter evidence)
+    if "التغريدات مع روابطها:" in prompt or "التعليقات مع روابطها:" in prompt:
+        # Reduce evidence text to 50% and retry
+        lines = prompt.split('\n')
+        reduced_lines = []
+        evidence_section = False
+        evidence_count = 0
+        max_evidence = 30  # Reduced from original
+        
+        for line in lines:
+            if 'التغريدات مع روابطها:' in line or 'التعليقات مع روابطها:' in line:
+                evidence_section = True
+                reduced_lines.append(line)
+            elif evidence_section and ('المطلوب' in line or '**' in line):
+                evidence_section = False
+                reduced_lines.append(line)
+            elif evidence_section:
+                if evidence_count < max_evidence:
+                    reduced_lines.append(line)
+                    if line.strip().startswith('التغريدة رقم') or line.strip().startswith('التعليق رقم'):
+                        evidence_count += 1
+            else:
+                reduced_lines.append(line)
+        
+        reduced_prompt = '\n'.join(reduced_lines)
+        result = mistral.analyze(reduced_prompt, max_tokens)
+        
+        if result:
+            cleaned_result = result.replace('**', '').replace('*', '').strip()
+            st.session_state.ai_report_cache[section_name] = cleaned_result
+            return cleaned_result
+    
+    # If still failed, return error with suggestion
+    return f"⚠️ لم نتمكن من إنشاء القسم. جرب تقليل نطاق التاريخ أو أعد المحاولة."
 
 def display_report_section(title: str, content: str):
     """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
@@ -1832,18 +1890,27 @@ def ai_detailed_report_page():
     # Clear the AI report cache when generating a new report with different dates
     if 'ai_report_cache' in st.session_state:
         st.session_state.ai_report_cache.clear()
-    
-    mistral = MistralAnalyzer(MISTRAL_KEYS)
+
+    # Initialize enhanced analyzer with smart rate limiting
+    mistral = EnhancedMistralAnalyzer(
+        api_keys=MISTRAL_KEYS,
+        api_url=MISTRAL_API_URL,
+        model=MISTRAL_MODEL,
+        temperature=MISTRAL_TEMPERATURE,
+        max_tokens=MISTRAL_MAX_TOKENS,
+        rate_limit_per_key=5,  # 5 requests per minute per key
+        timeout=60
+    )
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
         sample_comments_list = df_comments['comment_text'].dropna().head(5000).tolist()
     
-    # استخراج جميع التغريدات مع روابطها (بدون فلترة)
-    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=200)
+    # استخراج جميع التغريدات مع روابطها (محسّن - أقل بيانات)
+    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=150)
     evidence_text = "\n\n".join([
-        f"التغريدة رقم {i+1}:\nالنص: {ev['text']}\nالرابط: {ev['url']}\nالتفاعل: {ev['likes']} إعجاب، {ev['retweets']} إعادة نشر\nالتاريخ: {ev['date']}"
-        for i, ev in enumerate(tweet_evidence_links[:100])
+        f"التغريدة رقم {i+1}:\nالنص: {ev['text'][:200]}\nالرابط: {ev['url']}"
+        for i, ev in enumerate(tweet_evidence_links[:50])  # Reduced from 100 to 50
     ])
     
     progress_bar = st.progress(0)
@@ -2258,6 +2325,129 @@ def ai_detailed_report_page():
     progress_bar.progress(100)
     status_text.empty()
 
+def generate_pdf_report(username: str, sections_list: list, report_data: dict) -> bytes:
+    """Generate PDF report with Arabic support"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from arabic_reshaper import reshape
+        from bidi.algorithm import get_display
+        import io
+    except ImportError as e:
+        raise ImportError(f"PDF libraries not available. Please install: pip install reportlab arabic-reshaper python-bidi")
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles for RTL Arabic text
+    arabic_style = ParagraphStyle(
+        'Arabic',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        alignment=TA_RIGHT,
+        leading=20,
+        rightIndent=0,
+        leftIndent=0,
+        spaceAfter=12,
+        wordWrap='RTL'
+    )
+    
+    title_style = ParagraphStyle(
+        'ArabicTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=16,
+        alignment=TA_CENTER,
+        leading=24,
+        spaceAfter=20,
+        textColor='#1f2937'
+    )
+    
+    section_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=TA_RIGHT,
+        leading=20,
+        spaceAfter=15,
+        spaceBefore=15,
+        textColor='#374151'
+    )
+    
+    def process_arabic(text):
+        """Process Arabic text for proper display in PDF"""
+        if not text:
+            return ""
+        # Reshape Arabic text
+        reshaped_text = reshape(text)
+        # Apply bidirectional algorithm
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+    
+    # Title
+    title_text = process_arabic(f"تقرير التحليل التفصيلي - حساب @{username}")
+    story.append(Paragraph(title_text, title_style))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Report Info
+    date_str = datetime.now().strftime('%d %B %Y - %H:%M')
+    tweets_count = len(report_data.get('tweets', [])) if report_data.get('tweets') is not None else 0
+    comments_count = len(report_data.get('comments', [])) if report_data.get('comments') is not None and not report_data.get('comments').empty else 0
+    
+    info_text = process_arabic(f"تاريخ التحليل: {date_str}")
+    story.append(Paragraph(info_text, arabic_style))
+    
+    sample_text = process_arabic(f"حجم العينة: {tweets_count:,} تغريدة | {comments_count:,} تعليق")
+    story.append(Paragraph(sample_text, arabic_style))
+    story.append(Spacer(1, 0.5*inch))
+    
+    # Add sections
+    for section_key, section_title in sections_list:
+        if section_key in st.session_state.ai_report_cache:
+            # Section title
+            section_title_ar = process_arabic(section_title)
+            story.append(Paragraph(section_title_ar, section_style))
+            
+            # Section content
+            content = st.session_state.ai_report_cache[section_key]
+            
+            # Split content into paragraphs and process each
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    # Remove markdown links and clean text
+                    clean_para = para.replace('[الإثبات:', '').replace(']', '')
+                    processed_para = process_arabic(clean_para)
+                    try:
+                        story.append(Paragraph(processed_para, arabic_style))
+                    except:
+                        # Fallback for problematic text
+                        story.append(Spacer(1, 0.1*inch))
+            
+            story.append(Spacer(1, 0.3*inch))
+    
+    # Footer
+    story.append(Spacer(1, 0.5*inch))
+    footer_text = process_arabic(f"معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    story.append(Paragraph(footer_text, arabic_style))
+    
+    # Build PDF
+    doc.build(story)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    return pdf_data
+
 def ai_summary_report_page():
     """صفحة ملخص التقرير الذكي"""
     if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
@@ -2278,9 +2468,18 @@ def ai_summary_report_page():
     df_tweets = data.get('tweets')
     df_comments = data.get('comments')
     username = data.get('username', 'User')
-    
-    mistral = MistralAnalyzer(MISTRAL_KEYS)
-    
+
+    # Initialize enhanced analyzer with smart rate limiting
+    mistral = EnhancedMistralAnalyzer(
+        api_keys=MISTRAL_KEYS,
+        api_url=MISTRAL_API_URL,
+        model=MISTRAL_MODEL,
+        temperature=MISTRAL_TEMPERATURE,
+        max_tokens=MISTRAL_MAX_TOKENS,
+        rate_limit_per_key=5,  # 5 requests per minute per key
+        timeout=60
+    )
+
     previous_sections = {}
     sections_list = [
         ("news_sources", "المصادر الإخبارية المعتمدة"),
@@ -3093,33 +3292,48 @@ def main():
                 # Generate Detailed Report
                 ai_detailed_report_page()
                 
-                # Download Button for Detailed Report
+                # Download Buttons for Detailed Report
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    # Check if report has been generated
-                    sections_list = [
-                        ("introduction", "Introduction"),
-                        ("news_sources", "News Sources Analysis"),
-                        ("network", "Social Network & Interactions"),
-                        ("main_topics", "Main Topics & Issues"),
-                        ("uae_content", "UAE-Related Content"),
-                        ("influence", "Influence & Reach"),
-                        ("political", "Political Orientation"),
-                        ("mb_links", "Muslim Brotherhood Links"),
-                        ("electronic_army", "Electronic Army Detection"),
-                        ("comments_content", "Comments Analysis"),
-                    ]
+                
+                # Check if report has been generated
+                sections_list = [
+                    ("introduction", "المقدمة"),
+                    ("news_sources", "المصادر الإخبارية المعتمدة"),
+                    ("network", "الشبكة الاجتماعية والتفاعلات"),
+                    ("main_topics", "القضايا والموضوعات الرئيسية"),
+                    ("uae_content", "المحتوى المتعلق بدولة الإمارات"),
+                    ("influence", "التأثير على وسائل التواصل"),
+                    ("political", "التوجهات السياسية العامة"),
+                    ("mb_links", "الارتباطات بجماعة الإخوان"),
+                    ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة"),
+                    ("comments_content", "تحليل التعليقات والنقاشات"),
+                ]
+                
+                # Check if at least one section exists
+                has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
+                
+                if has_report:
+                    # Check if PDF libraries are available
+                    pdf_available = True
+                    try:
+                        import reportlab
+                        import arabic_reshaper
+                        import bidi
+                    except ImportError:
+                        pdf_available = False
                     
-                    # Check if at least one section exists
-                    has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
+                    if pdf_available:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                    else:
+                        col1, col2 = st.columns([1, 1])
                     
-                    if has_report:
+                    with col1:
+                        # Text download
                         detailed_report = f"""
-Detailed Analysis Report with Evidence Links - Twitter Account
-Account: @{username}
-Analysis Date: {datetime.now().strftime('%d %B %Y - %H:%M')}
-Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if data.get('comments') is not None else 0:,} comments
+تقرير التحليل التفصيلي مع روابط الإثبات - حساب تويتر
+الحساب: @{username}
+تاريخ التحليل: {datetime.now().strftime('%d %B %Y - %H:%M')}
+حجم العينة: {len(data.get('tweets')):,} تغريدة | {len(data.get('comments')) if data.get('comments') is not None else 0:,} تعليق
 
 """
                         for section_key, section_title in sections_list:
@@ -3129,23 +3343,60 @@ Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if 
                         detailed_report += f"""
 
 {'='*60}
-Report ID: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
-Issue Date: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
-Report Type: Detailed Report with Evidence Links
+معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
+تاريخ الإصدار: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
+نوع التقرير: تقرير تحليل تفصيلي مع روابط الإثبات
 {'='*60}
 """
                         
-                        filename = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        filename_txt = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
                         st.download_button(
-                            label="💾 Download Detailed Report",
+                            label="📄 Download TXT",
                             data=detailed_report.encode('utf-8'),
-                            file_name=filename,
+                            file_name=filename_txt,
                             mime="text/plain",
                             use_container_width=True,
-                            type="primary"
+                            type="secondary"
                         )
+                    
+                    if pdf_available:
+                        with col2:
+                            # PDF download with better error handling
+                            if st.button("📑 Generate PDF", use_container_width=True, type="primary"):
+                                with st.spinner("Generating PDF..."):
+                                    try:
+                                        pdf_data = generate_pdf_report(username, sections_list, data)
+                                        filename_pdf = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                        st.download_button(
+                                            label="⬇️ Download PDF",
+                                            data=pdf_data,
+                                            file_name=filename_pdf,
+                                            mime="application/pdf",
+                                            use_container_width=True,
+                                            key="pdf_download_btn"
+                                        )
+                                    except Exception as e:
+                                        st.error(f"⚠️ Error generating PDF: {str(e)[:100]}")
+                                        st.info("💡 Please use TXT download instead.")
+                        
+                        with col3:
+                            st.markdown("""
+                            <div style="
+                                padding: 12px;
+                                background: #f0f9ff;
+                                border-radius: 8px;
+                                text-align: center;
+                                font-size: 0.9rem;
+                                color: #0369a1;
+                            ">
+                                ✨ Report Ready
+                            </div>
+                            """, unsafe_allow_html=True)
                     else:
-                        st.info("ℹ️ Generate the report above first, then you can download it here.")
+                        with col2:
+                            st.info("📄 TXT format available. PDF export requires additional libraries.")
+                else:
+                    st.info("ℹ️ Generate the report above first, then you can download it here.")
         
         # ============================================================
         # TAB 3: AI SUMMARY
