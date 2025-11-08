@@ -1667,28 +1667,6 @@ def ai_detailed_report_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Clean Date Filter Section
-    st.markdown("""
-    <div style="
-        direction: rtl;
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-right: 5px solid #10b981;
-    ">
-        <h2 style="
-            color: #000000;
-            margin: 0;
-            font-weight: 700;
-            font-size: 1.375rem;
-            font-family: 'Cairo', sans-serif;
-            direction: rtl;
-        ">📅 تصفية حسب التاريخ</h2>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # Create date filter UI - Button on left side
     col1, col2, col3 = st.columns([0.6, 1, 1])
     
