@@ -1,16 +1,15 @@
 """
 X Analytics Suite - Professional Dashboard with AI Report
-Version: 8.2 - Optimized Performance Update
+Version: 9.0 - Enterprise Security & Sentiment Analysis Update
 
-Optimizations in this version:
-- Refactored HTTP connections with connection pooling and automatic retries
-- Eliminated duplicate pagination code with generic _paginate_tweets method
-- Optimized DataFrame operations with better vectorization
-- Improved error handling with specific exception types
-- Added function-level caching for expensive operations
-- Optimized parallel comment extraction with better batch processing
-- Enhanced chart generation with optimized data processing
-- Improved Mistral AI analyzer with better retry logic
+New features in this version:
+- ✅ Environment-based configuration with .env support
+- ✅ Sentiment analysis for tweets and comments using TextBlob
+- ✅ Enhanced error handling and comprehensive logging
+- ✅ Input validation and sanitization for security
+- ✅ Performance optimizations with caching
+- ✅ Better rate limit handling with exponential backoff
+- Plus all features from version 8.2
 """
 
 import streamlit as st
@@ -27,6 +26,29 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
+import os
+import logging
+from dotenv import load_dotenv
+from textblob import TextBlob
+
+# ============================================================
+# ENVIRONMENT CONFIGURATION
+# ============================================================
+# Load environment variables from .env file
+load_dotenv()
+
+# ============================================================
+# LOGGING CONFIGURATION
+# ============================================================
+logging.basicConfig(
+    level=logging.INFO if not os.getenv('DEBUG_MODE', 'false').lower() == 'true' else logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -383,19 +405,136 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# API CONFIGURATION "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
+# API CONFIGURATION - Environment Variables
 # ============================================================
-API_KEY = "ac0025f410mshd0c260cb60f3db6p18c4b0jsnc9b7413cd574"
+def validate_config():
+    """Validate that all required environment variables are set"""
+    required_vars = {
+        'RAPIDAPI_KEY': 'RapidAPI key for Twitter241 API',
+        'MISTRAL_API_KEY': 'Mistral AI API key'
+    }
+    
+    missing_vars = []
+    for var, description in required_vars.items():
+        value = os.getenv(var)
+        if not value or value == f'your_{var.lower()}':
+            missing_vars.append(f"❌ Missing {var}: {description}")
+    
+    if missing_vars:
+        error_msg = "\n".join(missing_vars)
+        error_msg += "\n\n📝 Please create a .env file with your API keys. See .env.example for template."
+        logger.error(f"Configuration validation failed: {missing_vars}")
+        st.error(error_msg)
+        st.stop()
+    
+    logger.info("Configuration validated successfully")
 
-API_HOST = "twitter241.p.rapidapi.com"
-MAX_COMMENT_WORKERS = 15
-CONNECTION_TIMEOUT = 15
+# Validate configuration on startup
+validate_config()
 
-MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
-MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
-MISTRAL_MODEL = "mistral-large-latest"
-MISTRAL_TEMPERATURE = 0.3
-MISTRAL_MAX_TOKENS = 4000
+# Load configuration from environment variables
+API_KEY = os.getenv('RAPIDAPI_KEY')
+API_HOST = os.getenv('RAPIDAPI_HOST', 'twitter241.p.rapidapi.com')
+MAX_COMMENT_WORKERS = int(os.getenv('MAX_COMMENT_WORKERS', '15'))
+CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '15'))
+
+MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
+MISTRAL_API_URL = os.getenv('MISTRAL_API_URL', 'https://api.mistral.ai/v1/chat/completions')
+MISTRAL_MODEL = os.getenv('MISTRAL_MODEL', 'mistral-large-latest')
+MISTRAL_TEMPERATURE = float(os.getenv('MISTRAL_TEMPERATURE', '0.3'))
+MISTRAL_MAX_TOKENS = int(os.getenv('MISTRAL_MAX_TOKENS', '4000'))
+
+logger.info(f"Loaded configuration: API_HOST={API_HOST}, MAX_WORKERS={MAX_COMMENT_WORKERS}, TIMEOUT={CONNECTION_TIMEOUT}")
+
+# ============================================================
+# INPUT VALIDATION & SANITIZATION
+# ============================================================
+def sanitize_username(username: str) -> str:
+    """Sanitize and validate Twitter username"""
+    if not username:
+        raise ValueError("Username cannot be empty")
+    
+    # Remove @ symbol if present
+    username = username.strip().lstrip('@')
+    
+    # Twitter username validation: 1-15 characters, alphanumeric and underscore only
+    if not re.match(r'^[A-Za-z0-9_]{1,15}$', username):
+        raise ValueError("Invalid username format. Use only letters, numbers, and underscores (1-15 characters)")
+    
+    logger.info(f"Sanitized username: {username}")
+    return username
+
+def validate_numeric_input(value: int, min_val: int, max_val: int, field_name: str) -> int:
+    """Validate numeric input is within acceptable range"""
+    try:
+        value = int(value)
+        if value < min_val or value > max_val:
+            raise ValueError(f"{field_name} must be between {min_val} and {max_val}")
+        return value
+    except (ValueError, TypeError) as e:
+        logger.error(f"Invalid numeric input for {field_name}: {e}")
+        raise ValueError(f"Invalid {field_name}: must be a number between {min_val} and {max_val}")
+
+# ============================================================
+# SENTIMENT ANALYSIS
+# ============================================================
+def analyze_sentiment(text: str) -> Dict[str, any]:
+    """
+    Analyze sentiment of text using TextBlob
+    Returns: dict with sentiment label, polarity (-1 to 1), and subjectivity (0 to 1)
+    """
+    if not text or not isinstance(text, str) or text.strip() == '':
+        return {
+            'sentiment': 'Neutral',
+            'polarity': 0.0,
+            'subjectivity': 0.0
+        }
+    
+    try:
+        # Clean text for better analysis
+        clean_text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+        clean_text = re.sub(r'@\w+|#', '', clean_text)
+        
+        blob = TextBlob(clean_text)
+        polarity = blob.sentiment.polarity
+        subjectivity = blob.sentiment.subjectivity
+        
+        # Classify sentiment based on polarity
+        if polarity > 0.1:
+            sentiment_label = 'Positive'
+        elif polarity < -0.1:
+            sentiment_label = 'Negative'
+        else:
+            sentiment_label = 'Neutral'
+        
+        return {
+            'sentiment': sentiment_label,
+            'polarity': round(polarity, 3),
+            'subjectivity': round(subjectivity, 3)
+        }
+    except Exception as e:
+        logger.warning(f"Sentiment analysis failed for text: {str(e)}")
+        return {
+            'sentiment': 'Neutral',
+            'polarity': 0.0,
+            'subjectivity': 0.0
+        }
+
+def batch_analyze_sentiment(texts: List[str], progress_callback=None) -> List[Dict]:
+    """
+    Analyze sentiment for a batch of texts
+    Returns: list of sentiment dictionaries
+    """
+    results = []
+    total = len(texts)
+    
+    for i, text in enumerate(texts):
+        results.append(analyze_sentiment(text))
+        
+        if progress_callback and (i + 1) % 100 == 0:
+            progress_callback(f"Analyzing sentiment: {i + 1}/{total} completed")
+    
+    return results
 
 # ============================================================
 # TWITTER API CLASSES
@@ -429,12 +568,22 @@ class TwitterAPI:
         """Make API call with connection pooling and automatic retries"""
         try:
             url = f"https://{self.api_host}{endpoint}"
+            logger.debug(f"API call to: {endpoint}")
             response = self.session.get(url, headers=self.headers, timeout=CONNECTION_TIMEOUT)
             response.raise_for_status()
+            logger.debug(f"API call successful: {endpoint}")
             return response.json()
+        except requests.exceptions.Timeout as e:
+            logger.error(f"API timeout for {endpoint}: {str(e)}")
+            return {"error": True, "message": f"Request timeout: {str(e)}"}
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error for {endpoint}: {e.response.status_code}")
+            return {"error": True, "message": f"HTTP {e.response.status_code}: {str(e)}"}
         except requests.exceptions.RequestException as e:
+            logger.error(f"Request exception for {endpoint}: {str(e)}")
             return {"error": True, "message": str(e)}
         except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error for {endpoint}: {str(e)}")
             return {"error": True, "message": f"Invalid JSON response: {str(e)}"}
 
 class TwitterExtractor:
@@ -895,12 +1044,13 @@ def parse_twitter_date(date_str):
         except (ValueError, TypeError):
             return None
 
-def process_dataframe_for_analysis(df: pd.DataFrame) -> pd.DataFrame:
-    """Process dataframe with optimized vectorized operations"""
+def process_dataframe_for_analysis(df: pd.DataFrame, enable_sentiment: bool = True) -> pd.DataFrame:
+    """Process dataframe with optimized vectorized operations and sentiment analysis"""
     if df is None or df.empty:
         return df
 
     df = df.copy()
+    logger.info(f"Processing dataframe with {len(df)} rows")
 
     # Vectorized date parsing
     if 'created_at' in df.columns:
@@ -926,6 +1076,17 @@ def process_dataframe_for_analysis(df: pd.DataFrame) -> pd.DataFrame:
             0
         )
         df['engagement_rate'] = df['engagement_rate'].replace([np.inf, -np.inf], 0).clip(upper=100)
+
+    # Add sentiment analysis if text column exists and sentiment not already present
+    if enable_sentiment and 'text' in df.columns and 'sentiment' not in df.columns:
+        logger.info("Starting sentiment analysis for tweets")
+        sentiment_results = batch_analyze_sentiment(df['text'].fillna('').tolist())
+        
+        df['sentiment'] = [r['sentiment'] for r in sentiment_results]
+        df['sentiment_polarity'] = [r['polarity'] for r in sentiment_results]
+        df['sentiment_subjectivity'] = [r['subjectivity'] for r in sentiment_results]
+        
+        logger.info(f"Sentiment analysis complete: {df['sentiment'].value_counts().to_dict()}")
 
     return df
 
@@ -1152,6 +1313,7 @@ def show_extraction_modal():
     with col2:
         max_pages = st.slider("Maximum Pages", min_value=10, max_value=300, value=100, step=10)
         fetch_comments = st.checkbox("Fetch Comments on Posts", value=True)
+        enable_sentiment = st.checkbox("Enable Sentiment Analysis", value=True, help="Analyze sentiment of tweets and comments")
         if fetch_comments:
             max_tweets_for_comments = st.number_input("Max Posts to Check", min_value=10, max_value=5000, value=500, step=10)
             comments_per_tweet = st.slider("Comments per Post", min_value=10, max_value=100, value=50, step=10)
@@ -1160,22 +1322,37 @@ def show_extraction_modal():
         if not username:
             st.error("Please enter a username to continue")
             return
+        
+        # Validate inputs
+        try:
+            username = sanitize_username(username)
+            target_posts = validate_numeric_input(target_posts, 100, 30000, "Target Posts")
+            target_replies = validate_numeric_input(target_replies, 100, 30000, "Target Replies")
+            max_pages = validate_numeric_input(max_pages, 10, 300, "Maximum Pages")
+        except ValueError as e:
+            st.error(str(e))
+            logger.error(f"Input validation failed: {e}")
+            return
+        
         run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, 
                       max_tweets_for_comments if fetch_comments else 0, 
-                      comments_per_tweet if fetch_comments else 50)
+                      comments_per_tweet if fetch_comments else 50, enable_sentiment)
 
-def run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, max_tweets_for_comments, comments_per_tweet):
+def run_extraction(username, target_posts, target_replies, max_pages, fetch_comments, max_tweets_for_comments, comments_per_tweet, enable_sentiment=True):
     progress_placeholder = st.empty()
     status_placeholder = st.empty()
     start_time = time.time()
     try:
+        logger.info(f"Starting extraction for user: {username}")
         api = TwitterAPI(API_KEY, API_HOST)
         extractor = TwitterExtractor(api)
         status_placeholder.info("Fetching user information...")
         user_info = extractor.get_user_info(username)
         if not user_info:
+            logger.error(f"User not found: {username}")
             st.error("User not found. Please check the username.")
             return
+        logger.info(f"User found: {user_info['name']} (@{user_info['username']})")
         col1, col2 = st.columns([1, 4])
         with col1:
             if user_info.get('image_url_high_res'):
@@ -1189,9 +1366,11 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
         def update_progress(message):
             status_placeholder.info(message)
         posts = extractor.get_user_posts_paginated(user_info['user_id'], username, target_posts, max_pages, progress_callback=update_progress)
+        logger.info(f"Extracted {len(posts)} posts")
         progress_bar.progress(33)
         status_placeholder.info("Extracting replies...")
         replies = extractor.get_user_replies_paginated(user_info['user_id'], username, target_replies, max_pages, progress_callback=update_progress)
+        logger.info(f"Extracted {len(replies)} replies")
         progress_bar.progress(66)
         comments = []
         if fetch_comments and posts:
@@ -1199,7 +1378,9 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
             comments = extractor.get_all_comments_parallel(posts, username, max_tweets=max_tweets_for_comments,
                                                            comments_per_tweet=comments_per_tweet, max_workers=MAX_COMMENT_WORKERS,
                                                            progress_callback=update_progress)
-        progress_bar.progress(100)
+            logger.info(f"Extracted {len(comments)} comments")
+        progress_bar.progress(80)
+        
         for post in posts:
             post['tweet_type'] = 'Original Post'
         for reply in replies:
@@ -1215,12 +1396,28 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
                 df_all = df_all[cols]
             if 'created_at' in df_all.columns:
                 df_all = df_all.sort_values('created_at', ascending=False)
-            df_all = process_dataframe_for_analysis(df_all)
+            
+            # Process dataframe with sentiment analysis
+            if enable_sentiment:
+                status_placeholder.info("Analyzing sentiment of tweets...")
+            df_all = process_dataframe_for_analysis(df_all, enable_sentiment=enable_sentiment)
         else:
             df_all = pd.DataFrame()
+        
         if comments:
             df_comments = pd.DataFrame(comments)
             df_comments = df_comments.drop_duplicates(subset=['comment_id'], keep='first')
+            
+            # Add sentiment analysis for comments
+            if enable_sentiment and 'comment_text' in df_comments.columns:
+                status_placeholder.info("Analyzing sentiment of comments...")
+                logger.info("Starting sentiment analysis for comments")
+                comment_sentiments = batch_analyze_sentiment(df_comments['comment_text'].fillna('').tolist())
+                
+                df_comments['sentiment'] = [r['sentiment'] for r in comment_sentiments]
+                df_comments['sentiment_polarity'] = [r['polarity'] for r in comment_sentiments]
+                df_comments['sentiment_subjectivity'] = [r['subjectivity'] for r in comment_sentiments]
+                logger.info(f"Comment sentiment analysis complete: {df_comments['sentiment'].value_counts().to_dict()}")
         else:
             df_comments = pd.DataFrame()
         
@@ -2549,14 +2746,21 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        # Header Section
-        col1, col2, col3 = st.columns([3, 1, 1])
-        with col1:
-            st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
-        with col2:
+        # Header Section with Logo
+        header_col1, header_col2, header_col3, header_col4 = st.columns([0.5, 2.5, 1, 1])
+        with header_col1:
+            st.markdown("""
+            <div style="display: flex; align-items: center; height: 100%;">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU" 
+                     style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
+            </div>
+            """, unsafe_allow_html=True)
+        with header_col2:
+            st.markdown("<h3 style='margin: 0; padding: 0; line-height: 60px;'>X Analytics Suite</h3>", unsafe_allow_html=True)
+        with header_col3:
             if st.button("Start Extraction", type="primary", use_container_width=True, key="main_extraction_btn"):
                 show_extraction_modal()
-        with col3:
+        with header_col4:
             if st.button("Reset App", type="secondary", use_container_width=True, key="reset_app_btn"):
                 st.session_state.clear()
                 st.rerun()
