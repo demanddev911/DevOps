@@ -1846,10 +1846,52 @@ def ai_detailed_report_page():
         for i, ev in enumerate(tweet_evidence_links[:100])
     ])
     
+    # Section selector for faster generation
+    st.markdown("""
+    <div style="
+        direction: rtl;
+        background: #fef3c7;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-right: 4px solid #f59e0b;
+        font-family: 'Cairo', sans-serif;
+    ">
+        <h3 style="margin: 0 0 10px 0; color: #92400e;">⚡ تسريع التقرير</h3>
+        <p style="margin: 0; color: #92400e;">اختر نوع التقرير:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col_q1, col_q2 = st.columns(2)
+    with col_q1:
+        report_type = st.radio(
+            "نوع التقرير",
+            ["سريع (5 أقسام - 3 دقائق)", "كامل (11 قسم - 8 دقائق)"],
+            key="report_type_selector",
+            label_visibility="collapsed"
+        )
+    
+    with col_q2:
+        st.markdown("""
+        <div style="padding: 10px; background: #e0f2fe; border-radius: 6px; text-align: right; direction: rtl;">
+            💡 <b>نصيحة:</b> التقرير السريع يوفر المعلومات الأساسية بسرعة
+        </div>
+        """, unsafe_allow_html=True)
+    
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    sections = [
+    # Define sections based on report type
+    if "سريع" in report_type:
+        sections = [
+            ("introduction", "المقدمة", 20),
+            ("main_topics", "القضايا والموضوعات الرئيسية", 40),
+            ("uae_content", "المحتوى المتعلق بدولة الإمارات", 60),
+            ("influence", "التأثير على وسائل التواصل", 80),
+            ("comments_content", "تحليل التعليقات والنقاشات", 100),
+        ]
+    else:
+        sections = [
         ("introduction", "المقدمة", 8),
         ("news_sources", "المصادر الإخبارية المعتمدة", 16),
         ("network", "الشبكة الاجتماعية والتفاعلات", 24),
@@ -1861,7 +1903,11 @@ def ai_detailed_report_page():
         ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة", 72),
         ("comments_content", "تحليل التعليقات والنقاشات", 80),
         ("critical_questions", "التحليل العميق - الأسئلة الحرجة", 90),
-    ]
+        ]
+    
+    # Show estimated time
+    estimated_time = len(sections) * 25  # ~25 seconds per section
+    st.info(f"⏱️ الوقت المتوقع: {estimated_time // 60} دقيقة و{estimated_time % 60} ثانية تقريباً")
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
         status_text.markdown(f"""
