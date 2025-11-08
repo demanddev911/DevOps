@@ -987,38 +987,56 @@ class MistralAnalyzer:
     def __init__(self, api_keys: List[str]):
         self.api_keys = api_keys
         self.current_key_index = 0
+        self.failed_keys = set()  # Track failed keys
         self.session = self._create_session()
+        self.request_timeout = 60  # Reduced from 120 for faster failover
         
     def _create_session(self) -> requests.Session:
         session = requests.Session()
+        # Optimized retry strategy for faster failover
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[500, 502, 503, 504],  # Removed 429 to handle manually
+            total=2,  # Reduced retries
+            backoff_factor=0.5,  # Faster backoff
+            status_forcelist=[500, 502, 503, 504],
             allowed_methods=["POST"]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,  # Connection pooling
+            pool_maxsize=20
+        )
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
     
     def _get_current_key(self) -> str:
-        """Get the current API key"""
+        """Get the current API key, skipping known failed keys"""
+        attempts = 0
+        while attempts < len(self.api_keys):
+            key = self.api_keys[self.current_key_index]
+            if key not in self.failed_keys:
+                return key
+            self._switch_to_next_key()
+            attempts += 1
+        # If all keys failed, clear failed set and retry
+        self.failed_keys.clear()
         return self.api_keys[self.current_key_index]
     
     def _switch_to_next_key(self) -> bool:
         """Switch to next API key. Returns True if switched, False if no more keys"""
-        if self.current_key_index < len(self.api_keys) - 1:
-            self.current_key_index += 1
-            return True
-        return False
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        return True
     
     def _reset_key_index(self):
         """Reset to first key for next request"""
         self.current_key_index = 0
+    
+    def _mark_key_failed(self, key: str):
+        """Mark a key as temporarily failed"""
+        self.failed_keys.add(key)
 
     def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with automatic key switching on rate limits/timeouts"""
+        """Optimized analyze with faster failover and smart key management"""
         payload = {
             "model": MISTRAL_MODEL,
             "messages": [{"role": "user", "content": prompt}],
@@ -1026,89 +1044,87 @@ class MistralAnalyzer:
             "max_tokens": max_tokens
         }
         
-        # Reset to first key at start of each new request
-        self._reset_key_index()
+        # Try up to 5 different keys before giving up
+        max_attempts = min(5, len(self.api_keys))
         
-        # Try all available keys
-        keys_tried = 0
-        while keys_tried < len(self.api_keys):
+        for attempt in range(max_attempts):
             current_key = self._get_current_key()
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {current_key}"
             }
             
-            # Retry current key up to 2 times for transient errors
-            for attempt in range(2):
-                try:
-                    response = self.session.post(
-                        MISTRAL_API_URL,
-                        headers=headers,
-                        json=payload,
-                        timeout=120
-                    )
-                    
-                    if response.status_code == 200:
+            try:
+                response = self.session.post(
+                    MISTRAL_API_URL,
+                    headers=headers,
+                    json=payload,
+                    timeout=self.request_timeout
+                )
+                
+                if response.status_code == 200:
+                    try:
                         return response.json()['choices'][0]['message']['content']
-                    
-                    elif response.status_code == 429:
-                        # Rate limit hit - switch to next key immediately
-                        if self._switch_to_next_key():
-                            keys_tried += 1
-                            break  # Break inner loop to try next key
-                        else:
-                            # No more keys available, wait and retry current key
-                            time.sleep(2)
-                            continue
-                    
-                    elif response.status_code >= 500:
-                        # Server error - retry with same key
-                        if attempt < 1:
-                            time.sleep(2)
-                            continue
-                        else:
-                            # After retries, try next key
-                            if self._switch_to_next_key():
-                                keys_tried += 1
-                                break
-                            return None
-                    
-                    else:
-                        # Other error - try next key
-                        if self._switch_to_next_key():
-                            keys_tried += 1
-                            break
+                    except (KeyError, ValueError, json.JSONDecodeError):
                         return None
                 
-                except requests.exceptions.Timeout:
-                    # Timeout - switch to next key immediately
-                    if self._switch_to_next_key():
-                        keys_tried += 1
-                        break  # Try next key
-                    elif attempt < 1:
-                        time.sleep(2)
-                        continue
-                    return None
+                elif response.status_code == 429:
+                    # Rate limit - mark key and switch immediately
+                    self._mark_key_failed(current_key)
+                    self._switch_to_next_key()
+                    continue
                 
-                except requests.exceptions.RequestException:
-                    # Connection error - try next key
-                    if self._switch_to_next_key():
-                        keys_tried += 1
-                        break
-                    elif attempt < 1:
-                        time.sleep(2)
-                        continue
-                    return None
+                elif response.status_code >= 500:
+                    # Server error - switch to next key
+                    self._switch_to_next_key()
+                    continue
                 
-                except (KeyError, ValueError, json.JSONDecodeError):
-                    return None
+                else:
+                    # Other error - try next key
+                    self._switch_to_next_key()
+                    continue
             
-            # If we broke out of inner loop, continue with next key
-            if keys_tried < len(self.api_keys):
+            except requests.exceptions.Timeout:
+                # Timeout - switch immediately, no retry
+                self._mark_key_failed(current_key)
+                self._switch_to_next_key()
                 continue
-            break
+            
+            except requests.exceptions.RequestException:
+                # Connection error - switch to next key
+                self._switch_to_next_key()
+                continue
+            
+            except Exception:
+                # Unknown error - try next key
+                self._switch_to_next_key()
+                continue
         
         return None
+    
+    def analyze_batch(self, prompts: List[tuple], max_workers: int = 3) -> Dict[str, str]:
+        """Parallel batch processing of multiple prompts"""
+        results = {}
+        
+        def process_single(section_key: str, prompt: str, max_tokens: int):
+            content = self.analyze(prompt, max_tokens)
+            return section_key, content
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(process_single, sk, p, mt): sk 
+                for sk, p, mt in prompts
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    section_key, content = future.result(timeout=180)
+                    if content:
+                        results[section_key] = content
+                except Exception:
+                    pass
+        
+        return results
 
 # ============================================================
 # DATA PROCESSING
@@ -1846,52 +1862,10 @@ def ai_detailed_report_page():
         for i, ev in enumerate(tweet_evidence_links[:100])
     ])
     
-    # Section selector for faster generation
-    st.markdown("""
-    <div style="
-        direction: rtl;
-        background: #fef3c7;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border-right: 4px solid #f59e0b;
-        font-family: 'Cairo', sans-serif;
-    ">
-        <h3 style="margin: 0 0 10px 0; color: #92400e;">⚡ تسريع التقرير</h3>
-        <p style="margin: 0; color: #92400e;">اختر نوع التقرير:</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_q1, col_q2 = st.columns(2)
-    with col_q1:
-        report_type = st.radio(
-            "نوع التقرير",
-            ["سريع (5 أقسام - 3 دقائق)", "كامل (11 قسم - 8 دقائق)"],
-            key="report_type_selector",
-            label_visibility="collapsed"
-        )
-    
-    with col_q2:
-        st.markdown("""
-        <div style="padding: 10px; background: #e0f2fe; border-radius: 6px; text-align: right; direction: rtl;">
-            💡 <b>نصيحة:</b> التقرير السريع يوفر المعلومات الأساسية بسرعة
-        </div>
-        """, unsafe_allow_html=True)
-    
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    # Define sections based on report type
-    if "سريع" in report_type:
-        sections = [
-            ("introduction", "المقدمة", 20),
-            ("main_topics", "القضايا والموضوعات الرئيسية", 40),
-            ("uae_content", "المحتوى المتعلق بدولة الإمارات", 60),
-            ("influence", "التأثير على وسائل التواصل", 80),
-            ("comments_content", "تحليل التعليقات والنقاشات", 100),
-        ]
-    else:
-        sections = [
+    sections = [
         ("introduction", "المقدمة", 8),
         ("news_sources", "المصادر الإخبارية المعتمدة", 16),
         ("network", "الشبكة الاجتماعية والتفاعلات", 24),
@@ -1903,11 +1877,7 @@ def ai_detailed_report_page():
         ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة", 72),
         ("comments_content", "تحليل التعليقات والنقاشات", 80),
         ("critical_questions", "التحليل العميق - الأسئلة الحرجة", 90),
-        ]
-    
-    # Show estimated time
-    estimated_time = len(sections) * 25  # ~25 seconds per section
-    st.info(f"⏱️ الوقت المتوقع: {estimated_time // 60} دقيقة و{estimated_time % 60} ثانية تقريباً")
+    ]
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
         status_text.markdown(f"""
