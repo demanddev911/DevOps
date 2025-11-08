@@ -1044,8 +1044,8 @@ class MistralAnalyzer:
             "max_tokens": max_tokens
         }
         
-        # Try up to 5 different keys before giving up
-        max_attempts = min(5, len(self.api_keys))
+        # Try up to 8 different keys before giving up (increased from 5)
+        max_attempts = min(8, len(self.api_keys))
         
         for attempt in range(max_attempts):
             current_key = self._get_current_key()
@@ -1523,13 +1523,49 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
+    
+    # First attempt with full prompt
     result = mistral.analyze(prompt, max_tokens)
+    
     if result:
         cleaned_result = result.replace('**', '').replace('*', '').strip()
         st.session_state.ai_report_cache[section_name] = cleaned_result
         return cleaned_result
-    else:
-        return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
+    
+    # Fallback: Try with reduced prompt (shorter evidence)
+    if "التغريدات مع روابطها:" in prompt or "التعليقات مع روابطها:" in prompt:
+        # Reduce evidence text to 50% and retry
+        lines = prompt.split('\n')
+        reduced_lines = []
+        evidence_section = False
+        evidence_count = 0
+        max_evidence = 30  # Reduced from original
+        
+        for line in lines:
+            if 'التغريدات مع روابطها:' in line or 'التعليقات مع روابطها:' in line:
+                evidence_section = True
+                reduced_lines.append(line)
+            elif evidence_section and ('المطلوب' in line or '**' in line):
+                evidence_section = False
+                reduced_lines.append(line)
+            elif evidence_section:
+                if evidence_count < max_evidence:
+                    reduced_lines.append(line)
+                    if line.strip().startswith('التغريدة رقم') or line.strip().startswith('التعليق رقم'):
+                        evidence_count += 1
+            else:
+                reduced_lines.append(line)
+        
+        reduced_prompt = '\n'.join(reduced_lines)
+        result = mistral.analyze(reduced_prompt, max_tokens)
+        
+        if result:
+            cleaned_result = result.replace('**', '').replace('*', '').strip()
+            st.session_state.ai_report_cache[section_name] = cleaned_result
+            return cleaned_result
+    
+    # If still failed, return error with suggestion
+    return f"⚠️ لم نتمكن من إنشاء القسم. جرب تقليل نطاق التاريخ أو أعد المحاولة."
 
 def display_report_section(title: str, content: str):
     """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
@@ -1855,11 +1891,11 @@ def ai_detailed_report_page():
     if df_comments is not None and not df_comments.empty:
         sample_comments_list = df_comments['comment_text'].dropna().head(5000).tolist()
     
-    # استخراج جميع التغريدات مع روابطها (بدون فلترة)
-    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=200)
+    # استخراج جميع التغريدات مع روابطها (محسّن - أقل بيانات)
+    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=150)
     evidence_text = "\n\n".join([
-        f"التغريدة رقم {i+1}:\nالنص: {ev['text']}\nالرابط: {ev['url']}\nالتفاعل: {ev['likes']} إعجاب، {ev['retweets']} إعادة نشر\nالتاريخ: {ev['date']}"
-        for i, ev in enumerate(tweet_evidence_links[:100])
+        f"التغريدة رقم {i+1}:\nالنص: {ev['text'][:200]}\nالرابط: {ev['url']}"
+        for i, ev in enumerate(tweet_evidence_links[:50])  # Reduced from 100 to 50
     ])
     
     progress_bar = st.progress(0)
