@@ -530,12 +530,44 @@ MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
 # Google Gemini API Keys for Rate Limit Resilience
+# Option 1: Set environment variables (recommended for production)
+# Option 2: Replace placeholder keys below with your actual keys
 # Get your API keys from: https://makersuite.google.com/app/apikey
-GEMINI_KEYS: List[str] = [
+
+# Try to load from environment variables first
+import os as _os
+_gemini_keys_from_env = [
+    _os.getenv('GEMINI_KEY_1'),
+    _os.getenv('GEMINI_KEY_2'),
+    _os.getenv('GEMINI_KEY_3'),
+    _os.getenv('GEMINI_KEY_4'),
+    _os.getenv('GEMINI_KEY_5'),
+]
+# Filter out None values
+_gemini_keys_from_env = [k for k in _gemini_keys_from_env if k and k.strip()]
+
+# If environment variables are not set, use these (replace with your keys)
+GEMINI_KEYS: List[str] = _gemini_keys_from_env if _gemini_keys_from_env else [
     "AIzaSyDEMOKEY1-REPLACE_WITH_YOUR_ACTUAL_KEY",
     "AIzaSyDEMOKEY2-REPLACE_WITH_YOUR_ACTUAL_KEY",
     "AIzaSyDEMOKEY3-REPLACE_WITH_YOUR_ACTUAL_KEY",
 ]
+
+# Validate that keys are not placeholders
+_placeholder_detected = any('DEMOKEY' in key or 'REPLACE' in key for key in GEMINI_KEYS)
+if _placeholder_detected:
+    import warnings
+    warnings.warn(
+        "\n⚠️  GEMINI API KEYS NOT CONFIGURED!\n"
+        "Please set environment variables (GEMINI_KEY_1, GEMINI_KEY_2, etc.)\n"
+        "OR edit line 547 in Twitter-Profile-app.py with your actual keys.\n"
+        "Get free keys at: https://makersuite.google.com/app/apikey\n"
+        "The app will try to use Mistral AI as fallback.",
+        UserWarning
+    )
+    # Clear placeholder keys to force fallback to Mistral
+    GEMINI_KEYS = []
+
 GEMINI_MODEL = "gemini-1.5-flash"
 GEMINI_TEMPERATURE = 0.3
 GEMINI_MAX_TOKENS = 4000
@@ -1936,16 +1968,25 @@ def ai_detailed_report_page():
         st.session_state.ai_report_cache.clear()
 
     # Initialize analyzer with smart rate limiting (Gemini preferred, Mistral as fallback)
-    if GEMINI_AVAILABLE:
-        ai_analyzer = EnhancedGeminiAnalyzer(
-            api_keys=GEMINI_KEYS,
-            model=GEMINI_MODEL,
-            temperature=GEMINI_TEMPERATURE,
-            max_tokens=GEMINI_MAX_TOKENS,
-            rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
-            timeout=60
-        )
-        st.success("✅ استخدام محلل Google Gemini 1.5 Flash المحسّن مع الحماية من تجاوز الحدود")
+    if GEMINI_AVAILABLE and GEMINI_KEYS:
+        try:
+            ai_analyzer = EnhancedGeminiAnalyzer(
+                api_keys=GEMINI_KEYS,
+                model=GEMINI_MODEL,
+                temperature=GEMINI_TEMPERATURE,
+                max_tokens=GEMINI_MAX_TOKENS,
+                rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
+                timeout=60
+            )
+            st.success(f"✅ استخدام محلل Google Gemini 1.5 Flash المحسّن ({len(GEMINI_KEYS)} مفاتيح API)")
+        except Exception as e:
+            st.error(f"❌ فشل تهيئة Gemini: {str(e)[:200]}")
+            st.info("🔄 التحويل إلى Mistral AI...")
+            ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
+    elif not GEMINI_KEYS:
+        st.warning("⚠️ مفاتيح Gemini API غير مكوّنة - استخدام Mistral AI كبديل")
+        st.info("💡 للحصول على مفاتيح Gemini مجانية: https://makersuite.google.com/app/apikey")
+        ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
 
         # Show API health status in expander
         with st.expander("🔍 عرض حالة مفاتيح Gemini API", expanded=False):
@@ -2535,16 +2576,25 @@ def ai_summary_report_page():
     username = data.get('username', 'User')
 
     # Initialize analyzer with smart rate limiting (Gemini preferred, Mistral as fallback)
-    if GEMINI_AVAILABLE:
-        ai_analyzer = EnhancedGeminiAnalyzer(
-            api_keys=GEMINI_KEYS,
-            model=GEMINI_MODEL,
-            temperature=GEMINI_TEMPERATURE,
-            max_tokens=GEMINI_MAX_TOKENS,
-            rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
-            timeout=60
-        )
-        st.success("✅ استخدام محلل Google Gemini 1.5 Flash المحسّن مع الحماية من تجاوز الحدود")
+    if GEMINI_AVAILABLE and GEMINI_KEYS:
+        try:
+            ai_analyzer = EnhancedGeminiAnalyzer(
+                api_keys=GEMINI_KEYS,
+                model=GEMINI_MODEL,
+                temperature=GEMINI_TEMPERATURE,
+                max_tokens=GEMINI_MAX_TOKENS,
+                rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
+                timeout=60
+            )
+            st.success(f"✅ استخدام محلل Google Gemini 1.5 Flash المحسّن ({len(GEMINI_KEYS)} مفاتيح API)")
+        except Exception as e:
+            st.error(f"❌ فشل تهيئة Gemini: {str(e)[:200]}")
+            st.info("🔄 التحويل إلى Mistral AI...")
+            ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
+    elif not GEMINI_KEYS:
+        st.warning("⚠️ مفاتيح Gemini API غير مكوّنة - استخدام Mistral AI كبديل")
+        st.info("💡 للحصول على مفاتيح Gemini مجانية: https://makersuite.google.com/app/apikey")
+        ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
 
         # Show API health status in expander
         with st.expander("🔍 عرض حالة مفاتيح Gemini API", expanded=False):
@@ -3352,7 +3402,28 @@ def main():
             if st.button("Reset App", type="secondary", use_container_width=True, key="reset_app_btn"):
                 st.session_state.clear()
                 st.rerun()
-        
+
+        # Configuration Status Banner
+        if not GEMINI_KEYS:
+            st.warning("""
+            ⚠️ **إعداد Gemini API مطلوب / Gemini API Setup Required**
+
+            للحصول على أفضل أداء مع معدلات مجانية أعلى:
+            1. احصل على مفاتيح API مجانية من: https://makersuite.google.com/app/apikey
+            2. أضف المفاتيح في ملف `.env` أو مباشرة في `Twitter-Profile-app.py` (السطر 550)
+            3. راجع دليل الإعداد: `GEMINI_SETUP_GUIDE.md`
+
+            حالياً: استخدام Mistral AI كبديل
+            """)
+        elif GEMINI_AVAILABLE and len(GEMINI_KEYS) > 0:
+            with st.expander("✅ تم تكوين Gemini API - انقر لعرض التفاصيل", expanded=False):
+                st.success(f"""
+                **محلل AI النشط:** Google Gemini 1.5 Flash
+                **عدد المفاتيح:** {len(GEMINI_KEYS)}
+                **معدل الطلبات:** {len(GEMINI_KEYS) * 15} طلب/دقيقة ({len(GEMINI_KEYS) * 1500} طلب/يوم)
+                **النموذج:** {GEMINI_MODEL}
+                """)
+
         # Main Tabs - 3 tabs on the same level
         tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "📄 Detailed Report", "📋 AI Summary"])
         
