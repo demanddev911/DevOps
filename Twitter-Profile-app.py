@@ -27,6 +27,22 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
+import sys
+import os
+
+# Add current directory to Python path for Streamlit Cloud compatibility
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Import enhanced Mistral analyzer with rate limiting
+try:
+    from mistral_rate_limiter import EnhancedMistralAnalyzer
+    RATE_LIMITER_AVAILABLE = True
+except ImportError as e:
+    RATE_LIMITER_AVAILABLE = False
+    print(f"Warning: Enhanced rate limiter not available: {e}")
+    # Will use legacy MistralAnalyzer as fallback
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -67,8 +83,8 @@ st.markdown("""
     }
     
     .main {
-        background: #e8e8e8;
-        padding: 1rem;
+        background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
     }
     
     .block-container {
@@ -206,7 +222,7 @@ st.markdown("""
     .report-content {
         font-size: 1rem;
         line-height: 2;
-        color: #2d3748;
+        color: #000000;
         font-family: 'Cairo', sans-serif;
         text-align: justify;
     }
@@ -379,6 +395,128 @@ st.markdown("""
     ::-webkit-scrollbar-thumb:hover {
         background: #999;
     }
+    
+    /* Detailed Report Page Enhancements - Unified Font */
+    .main [direction="rtl"],
+    .main [direction="rtl"] *,
+    .main div[style*="direction: rtl"],
+    .main div[style*="direction: rtl"] *,
+    .report-section,
+    .report-section *,
+    .report-content,
+    .report-content * {
+        font-family: 'Cairo', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    
+    /* Simple table row hover */
+    .main table tbody tr:hover {
+        background: #f1f5f9 !important;
+    }
+    
+    .main table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        direction: rtl;
+        text-align: right;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px;
+        font-weight: 700;
+        border: none;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table td {
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        line-height: 1.8;
+        font-size: 0.9375rem;
+        color: #000000;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main table tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    
+    .main table tr:hover {
+        background-color: #f1f5f9;
+        transition: background-color 0.2s ease;
+    }
+    
+    .main ul, .main ol {
+        line-height: 2;
+        margin: 15px 0;
+        padding-right: 25px;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main li {
+        margin-bottom: 12px;
+        color: #000000;
+        font-size: 1rem;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main strong {
+        font-weight: 700;
+        color: #000000;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main p {
+        line-height: 2.1;
+        margin-bottom: 18px;
+        color: #000000;
+        font-size: 1.125rem;
+        font-weight: 400;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    /* Better text for divs with direction rtl */
+    .main div[direction="rtl"] p,
+    .main div[style*="direction: rtl"] p {
+        font-size: 1.125rem;
+        line-height: 2.1;
+        color: #000000;
+        margin-bottom: 18px;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        border-bottom: 2px solid transparent;
+        font-family: 'Cairo', sans-serif !important;
+    }
+    
+    .main a:hover {
+        color: #1e40af;
+        border-bottom-color: #93c5fd;
+    }
+    
+    .main h1, .main h2, .main h3, .main h4 {
+        font-family: 'Cairo', sans-serif !important;
+        font-weight: 700;
+        color: #000000;
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -391,7 +529,48 @@ API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
+# Multiple Mistral API Keys for Rate Limit Resilience
+MISTRAL_KEYS: List[str] = [
+    "BhkR8enTgJufYmP9Z8ks5Ln6HXHp7MlQ",
+    "FPph1ViTo77ONNDsaEz37p3FJQkY5jPY",
+    "979RiVBzoIk0f9vovyXOPPAM4Rd88a2F",
+    "FYNVQtcSIOPWjQi2ACIicwpWcDjLCXRD",
+    "O17Iq9RmMsQmy0TnhdIjFjZ8DAcGYhRq",
+    "z8cR4w32DRnE8meEd1WbteRi5EXjCPpb",
+    "nbiq77t08ktW7n8nxl2UyiwO2gEHdHaA",
+    "yb0pZZjCeBNeCRzALuwJj3RaHmIUqUNn",
+    "6pdBLRZo08NW4h0EsZFFAts64ghqRb5u",
+    "Egw4ZmA0cb6zCYp6iDs2NIZDyRpkdZN4",
+    "O4wEppQCbjN4kWrGzXrHNoP4gsPnZQtp",
+    "ca9CyWXY1U8xgQox6PxtvGdveaTeh42w",
+    "BJ3rBW2EWTBnouiVilEwnDurUpw79HTc",
+    "KourVlZelmO2HPND7m1zH6jcBdkCwVwP",
+    "qBRwo8x0Hsp46I7RHPx9rT0gWD39gKAJ",
+    "g4GJ1a6fy0FYRFI6F1DjLPnF2W0yYH8R",
+    "ifvxjsJF6sadWo2T3ofIvYdqWMVz8F7J",
+    "mkQoxuJqF64csdCVxDWO45cGPqhSmU3v",
+    "FC5fAVYrag8d0OZx7TNG7dav94XbvB38",
+    "SyaX5rgxtulaxgsUscz18o5Tp4dTWCR4",
+    "Bt9bXLvrvuLcLPixxKYa4d33P8h8zAAI",
+    "s18ja2B4x8nFiiaPL6tdtUGLzsJLnfYC",
+    "KC0e1nzQOmDJq0SU7nS8NBy2ccWPyKcU",
+    "GPKvOdqjWSFofhjQX6OoTGvciJXqrTbx",
+    "PPmCIgn5DuyOU2ChKpzOR5KgY6iKZpEn",
+    "iGAZ4cPmQfgFFdmwJoyW2qyn298ia3Zo",
+    "uaOu9oHmqpMwp7HLAVcXVjH1D431ZyPd",
+    "3WyjwFBlQLeoBJngJHdwjtlRC4nk5YEj",
+    "x2iCU0Ru6n4XNAg9TdEh65RDnumbCosH",
+    "G8bgrr14kwbojRgj9gRl5y3Y3UMq7wc9",
+    "4IlbiW9YkrGmRpKL5iBY4vPjfF58P0Ot",
+    "akABOZ5CJb1MmeMbVq2msDOx8AceHHfq",
+    "DtcSNZAwk0oj1NzOdwLFVtVYWu5o3Bij",
+    "5s9CiAuTnSGSULw94vrZaw8ymSsmYDmd",
+    "NX8oYtaJjjFzXUsVTOZml4yc58s5bQ0Y",
+    "4cLXjFMjU8QT4pcsoNeLPUOzjmlXjLlm",
+    "K8wNVj71msOwgQ6vVQ1nfZeZEKVp3hHj",
+    "dmgNRyqcqzAmCcKNKlirIukBIdlwhsJ3",
+    "bNveWmpWZmoou7wsT5j3eAFZnKmksbUE",
+]
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
 MISTRAL_MODEL = "mistral-large-latest"
 MISTRAL_TEMPERATURE = 0.3
@@ -818,68 +997,153 @@ class TwitterExtractor:
         return all_comments
 
 # ============================================================
-# MISTRAL AI ANALYZER
+# MISTRAL AI ANALYZER (LEGACY - DEPRECATED)
+# NOTE: This class is kept for backward compatibility only.
+# New code should use EnhancedMistralAnalyzer from mistral_rate_limiter.py
+# which includes advanced rate limiting, circuit breakers, and health tracking.
 # ============================================================
 class MistralAnalyzer:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
+    def __init__(self, api_keys: List[str]):
+        self.api_keys = api_keys
+        self.current_key_index = 0
+        self.failed_keys = set()  # Track failed keys
         self.session = self._create_session()
+        self.request_timeout = 60  # Reduced from 120 for faster failover
         
     def _create_session(self) -> requests.Session:
         session = requests.Session()
+        # Optimized retry strategy for faster failover
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
+            total=2,  # Reduced retries
+            backoff_factor=0.5,  # Faster backoff
+            status_forcelist=[500, 502, 503, 504],
             allowed_methods=["POST"]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=10,  # Connection pooling
+            pool_maxsize=20
+        )
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
+    
+    def _get_current_key(self) -> str:
+        """Get the current API key, skipping known failed keys"""
+        attempts = 0
+        while attempts < len(self.api_keys):
+            key = self.api_keys[self.current_key_index]
+            if key not in self.failed_keys:
+                return key
+            self._switch_to_next_key()
+            attempts += 1
+        # If all keys failed, clear failed set and retry
+        self.failed_keys.clear()
+        return self.api_keys[self.current_key_index]
+    
+    def _switch_to_next_key(self) -> bool:
+        """Switch to next API key. Returns True if switched, False if no more keys"""
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        return True
+    
+    def _reset_key_index(self):
+        """Reset to first key for next request"""
+        self.current_key_index = 0
+    
+    def _mark_key_failed(self, key: str):
+        """Mark a key as temporarily failed"""
+        self.failed_keys.add(key)
 
     def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with optimized error handling"""
+        """Optimized analyze with faster failover and smart key management"""
         payload = {
             "model": MISTRAL_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": MISTRAL_TEMPERATURE,
             "max_tokens": max_tokens
         }
-        for attempt in range(3):
+        
+        # Try up to 8 different keys before giving up (increased from 5)
+        max_attempts = min(8, len(self.api_keys))
+        
+        for attempt in range(max_attempts):
+            current_key = self._get_current_key()
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {current_key}"
+            }
+            
             try:
                 response = self.session.post(
                     MISTRAL_API_URL,
-                    headers=self.headers,
+                    headers=headers,
                     json=payload,
-                    timeout=120
+                    timeout=self.request_timeout
                 )
+                
                 if response.status_code == 200:
-                    return response.json()['choices'][0]['message']['content']
+                    try:
+                        return response.json()['choices'][0]['message']['content']
+                    except (KeyError, ValueError, json.JSONDecodeError):
+                        return None
+                
                 elif response.status_code == 429:
-                    wait_time = 2 * (attempt + 1)
-                    time.sleep(wait_time)
-                elif response.status_code >= 500:
-                    if attempt < 2:
-                        time.sleep(2 * (attempt + 1))
+                    # Rate limit - mark key and switch immediately
+                    self._mark_key_failed(current_key)
+                    self._switch_to_next_key()
                     continue
+                
+                elif response.status_code >= 500:
+                    # Server error - switch to next key
+                    self._switch_to_next_key()
+                    continue
+                
                 else:
-                    return None
+                    # Other error - try next key
+                    self._switch_to_next_key()
+                    continue
+            
             except requests.exceptions.Timeout:
-                if attempt < 2:
-                    time.sleep(2 * (attempt + 1))
+                # Timeout - switch immediately, no retry
+                self._mark_key_failed(current_key)
+                self._switch_to_next_key()
                 continue
+            
             except requests.exceptions.RequestException:
-                if attempt < 2:
-                    time.sleep(2)
+                # Connection error - switch to next key
+                self._switch_to_next_key()
                 continue
-            except (KeyError, ValueError, json.JSONDecodeError):
-                return None
+            
+            except Exception:
+                # Unknown error - try next key
+                self._switch_to_next_key()
+                continue
+        
         return None
+    
+    def analyze_batch(self, prompts: List[tuple], max_workers: int = 3) -> Dict[str, str]:
+        """Parallel batch processing of multiple prompts"""
+        results = {}
+        
+        def process_single(section_key: str, prompt: str, max_tokens: int):
+            content = self.analyze(prompt, max_tokens)
+            return section_key, content
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(process_single, sk, p, mt): sk 
+                for sk, p, mt in prompts
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    section_key, content = future.result(timeout=180)
+                    if content:
+                        results[section_key] = content
+                except Exception:
+                    pass
+        
+        return results
 
 # ============================================================
 # DATA PROCESSING
@@ -1278,13 +1542,49 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
+    
+    # First attempt with full prompt
     result = mistral.analyze(prompt, max_tokens)
+    
     if result:
         cleaned_result = result.replace('**', '').replace('*', '').strip()
         st.session_state.ai_report_cache[section_name] = cleaned_result
         return cleaned_result
-    else:
-        return f"⚠️ ما قدرنا ننشئ القسم {section_name}"
+    
+    # Fallback: Try with reduced prompt (shorter evidence)
+    if "التغريدات مع روابطها:" in prompt or "التعليقات مع روابطها:" in prompt:
+        # Reduce evidence text to 50% and retry
+        lines = prompt.split('\n')
+        reduced_lines = []
+        evidence_section = False
+        evidence_count = 0
+        max_evidence = 30  # Reduced from original
+        
+        for line in lines:
+            if 'التغريدات مع روابطها:' in line or 'التعليقات مع روابطها:' in line:
+                evidence_section = True
+                reduced_lines.append(line)
+            elif evidence_section and ('المطلوب' in line or '**' in line):
+                evidence_section = False
+                reduced_lines.append(line)
+            elif evidence_section:
+                if evidence_count < max_evidence:
+                    reduced_lines.append(line)
+                    if line.strip().startswith('التغريدة رقم') or line.strip().startswith('التعليق رقم'):
+                        evidence_count += 1
+            else:
+                reduced_lines.append(line)
+        
+        reduced_prompt = '\n'.join(reduced_lines)
+        result = mistral.analyze(reduced_prompt, max_tokens)
+        
+        if result:
+            cleaned_result = result.replace('**', '').replace('*', '').strip()
+            st.session_state.ai_report_cache[section_name] = cleaned_result
+            return cleaned_result
+    
+    # If still failed, return error with suggestion
+    return f"⚠️ لم نتمكن من إنشاء القسم. جرب تقليل نطاق التاريخ أو أعد المحاولة."
 
 def display_report_section(title: str, content: str):
     """عرض القسم مع تحويل الروابط لـ hyperlinks قابلة للضغط"""
@@ -1342,17 +1642,293 @@ def ai_detailed_report_page():
         st.warning("ما فيه بيانات متوفرة حق التحليل")
         return
     
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
+    # Parse dates in dataframes if not already parsed
+    if 'parsed_date' not in df_tweets.columns:
+        df_tweets = process_dataframe_for_analysis(df_tweets.copy())
+    if df_comments is not None and not df_comments.empty and 'parsed_date' not in df_comments.columns:
+        df_comments_temp = df_comments.copy()
+        if 'comment_date' in df_comments_temp.columns:
+            df_comments_temp['created_at'] = df_comments_temp['comment_date']
+            df_comments_temp = process_dataframe_for_analysis(df_comments_temp)
+            df_comments = df_comments_temp
+    
+    # Get min and max dates from the data
+    try:
+        min_tweet_date = df_tweets['parsed_date'].min()
+        max_tweet_date = df_tweets['parsed_date'].max()
+        min_comment_date = df_comments['parsed_date'].min() if df_comments is not None and not df_comments.empty and 'parsed_date' in df_comments.columns else min_tweet_date
+        max_comment_date = df_comments['parsed_date'].max() if df_comments is not None and not df_comments.empty and 'parsed_date' in df_comments.columns else max_tweet_date
+        
+        overall_min_date = min(min_tweet_date, min_comment_date)
+        overall_max_date = max(max_tweet_date, max_comment_date)
+        
+        # Convert to date objects for the date picker
+        default_start_date = overall_min_date.date() if pd.notna(overall_min_date) else datetime.now().date()
+        default_end_date = overall_max_date.date() if pd.notna(overall_max_date) else datetime.now().date()
+    except Exception as e:
+        # Fallback to current date if parsing fails
+        default_start_date = datetime.now().date()
+        default_end_date = datetime.now().date()
+    
+    # Clean Professional Header
+    current_time = datetime.now().strftime("%d %B %Y - %H:%M")
+    st.markdown(f"""
+    <div style="
+        direction: rtl;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        font-family: 'Cairo', sans-serif;
+        border-right: 5px solid #3b82f6;
+    ">
+        <h1 style="
+            font-size: 2.25rem; 
+            margin: 0 0 12px 0; 
+            font-weight: 700;
+            direction: rtl;
+            color: #000000;
+        ">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="
+            font-size: 1.25rem; 
+            margin: 0 0 20px 0; 
+            font-weight: 600;
+            direction: rtl;
+            color: #000000;
+        ">حساب تويتر: @{username}</h2>
+        <div style="
+            display: flex;
+            gap: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            direction: rtl;
+        ">
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📅 تاريخ التحليل</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{current_time}</p>
+            </div>
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📈 حجم العينة</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{len(df_tweets):,} تغريدة | {len(df_comments) if df_comments is not None and not df_comments.empty else 0:,} تعليق</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create date filter UI - Button on left side
+    col1, col2, col3 = st.columns([0.6, 1, 1])
+    
+    with col1:
+        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        generate_button = st.button(
+            "🔍 إنشاء التقرير",
+            type="primary",
+            use_container_width=True,
+            key="generate_detailed_report_btn"
+        )
+    
+    with col2:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ النهاية (إلى)</p>
+        """, unsafe_allow_html=True)
+        end_date = st.date_input(
+            "تاريخ النهاية",
+            value=default_end_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ النهاية لنطاق التقرير",
+            key="report_end_date",
+            label_visibility="collapsed"
+        )
+    
+    with col3:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ البداية (من)</p>
+        """, unsafe_allow_html=True)
+        start_date = st.date_input(
+            "تاريخ البداية",
+            value=default_start_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ البداية لنطاق التقرير",
+            key="report_start_date",
+            label_visibility="collapsed"
+        )
+    
+    # Validation
+    date_validation_error = None
+    if start_date and end_date:
+        if start_date > end_date:
+            date_validation_error = True
+            st.markdown("""
+            <div style="
+                direction: rtl;
+                background: #fef3c7;
+                border-right: 4px solid #f59e0b;
+                padding: 20px 25px;
+                border-radius: 8px;
+                margin-top: 20px;
+                font-family: 'Cairo', sans-serif;
+                text-align: right;
+            ">
+                <span style="
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #92400e;
+                    direction: rtl;
+                ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        date_validation_error = True
+    
+    # Display validation success
+    if not date_validation_error and generate_button:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            background: #d1fae5;
+            border-right: 4px solid #10b981;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Cairo', sans-serif;
+            text-align: right;
+        ">
+            <span style="
+                font-size: 1rem;
+                font-weight: 600;
+                color: #065f46;
+                direction: rtl;
+            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} ألى {end_date.strftime('%Y-%m-%d')}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if date_validation_error:
+        st.stop()
+    
+    if not generate_button:
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            👆 اضغط على زر إنشاء التقرير لبدء التحليل
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Filter data based on date range
+    start_datetime = pd.Timestamp(start_date)
+    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+    
+    # Filter tweets
+    df_tweets = df_tweets[
+        (df_tweets['parsed_date'] >= start_datetime) & 
+        (df_tweets['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Filter comments
+    if df_comments is not None and not df_comments.empty:
+        df_comments = df_comments[
+            (df_comments['parsed_date'] >= start_datetime) & 
+            (df_comments['parsed_date'] <= end_datetime)
+        ].copy()
+    
+    # Check if filtered data is empty
+    if df_tweets.empty:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ لا توجد بيانات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+    
+    # Clear the AI report cache when generating a new report with different dates
+    if 'ai_report_cache' in st.session_state:
+        st.session_state.ai_report_cache.clear()
+
+    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
+    if RATE_LIMITER_AVAILABLE:
+        mistral = EnhancedMistralAnalyzer(
+            api_keys=MISTRAL_KEYS,
+            api_url=MISTRAL_API_URL,
+            model=MISTRAL_MODEL,
+            temperature=MISTRAL_TEMPERATURE,
+            max_tokens=MISTRAL_MAX_TOKENS,
+            rate_limit_per_key=5,  # 5 requests per minute per key
+            timeout=60
+        )
+    else:
+        # Fallback to legacy analyzer
+        mistral = MistralAnalyzer(MISTRAL_KEYS)
+
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
         sample_comments_list = df_comments['comment_text'].dropna().head(5000).tolist()
     
-    # استخراج جميع التغريدات مع روابطها (بدون فلترة)
-    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=200)
+    # استخراج جميع التغريدات مع روابطها (محسّن - أقل بيانات)
+    tweet_evidence_links = extract_tweet_urls_for_evidence(df_tweets, sample_size=150)
     evidence_text = "\n\n".join([
-        f"التغريدة رقم {i+1}:\nالنص: {ev['text']}\nالرابط: {ev['url']}\nالتفاعل: {ev['likes']} إعجاب، {ev['retweets']} إعادة نشر\nالتاريخ: {ev['date']}"
-        for i, ev in enumerate(tweet_evidence_links[:100])
+        f"التغريدة رقم {i+1}:\nالنص: {ev['text'][:200]}\nالرابط: {ev['url']}"
+        for i, ev in enumerate(tweet_evidence_links[:50])  # Reduced from 100 to 50
     ])
     
     progress_bar = st.progress(0)
@@ -1373,7 +1949,20 @@ def ai_detailed_report_page():
     ]
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
-        status_text.info(f"عم ننشئ: {section_title}...")
+        status_text.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+        ">
+            ⏳ عم ننشئ: {section_title}...
+        </div>
+        """, unsafe_allow_html=True)
         progress_bar.progress(progress_val)
         
         if section_key == "introduction":
@@ -1752,7 +2341,130 @@ def ai_detailed_report_page():
         time.sleep(1)
     
     progress_bar.progress(100)
-    status_text.success("✅ تم إنشاء التقرير التفصيلي بنجاح!")
+    status_text.empty()
+
+def generate_pdf_report(username: str, sections_list: list, report_data: dict) -> bytes:
+    """Generate PDF report with Arabic support"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from arabic_reshaper import reshape
+        from bidi.algorithm import get_display
+        import io
+    except ImportError as e:
+        raise ImportError(f"PDF libraries not available. Please install: pip install reportlab arabic-reshaper python-bidi")
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles for RTL Arabic text
+    arabic_style = ParagraphStyle(
+        'Arabic',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        alignment=TA_RIGHT,
+        leading=20,
+        rightIndent=0,
+        leftIndent=0,
+        spaceAfter=12,
+        wordWrap='RTL'
+    )
+    
+    title_style = ParagraphStyle(
+        'ArabicTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=16,
+        alignment=TA_CENTER,
+        leading=24,
+        spaceAfter=20,
+        textColor='#1f2937'
+    )
+    
+    section_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=TA_RIGHT,
+        leading=20,
+        spaceAfter=15,
+        spaceBefore=15,
+        textColor='#374151'
+    )
+    
+    def process_arabic(text):
+        """Process Arabic text for proper display in PDF"""
+        if not text:
+            return ""
+        # Reshape Arabic text
+        reshaped_text = reshape(text)
+        # Apply bidirectional algorithm
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+    
+    # Title
+    title_text = process_arabic(f"تقرير التحليل التفصيلي - حساب @{username}")
+    story.append(Paragraph(title_text, title_style))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Report Info
+    date_str = datetime.now().strftime('%d %B %Y - %H:%M')
+    tweets_count = len(report_data.get('tweets', [])) if report_data.get('tweets') is not None else 0
+    comments_count = len(report_data.get('comments', [])) if report_data.get('comments') is not None and not report_data.get('comments').empty else 0
+    
+    info_text = process_arabic(f"تاريخ التحليل: {date_str}")
+    story.append(Paragraph(info_text, arabic_style))
+    
+    sample_text = process_arabic(f"حجم العينة: {tweets_count:,} تغريدة | {comments_count:,} تعليق")
+    story.append(Paragraph(sample_text, arabic_style))
+    story.append(Spacer(1, 0.5*inch))
+    
+    # Add sections
+    for section_key, section_title in sections_list:
+        if section_key in st.session_state.ai_report_cache:
+            # Section title
+            section_title_ar = process_arabic(section_title)
+            story.append(Paragraph(section_title_ar, section_style))
+            
+            # Section content
+            content = st.session_state.ai_report_cache[section_key]
+            
+            # Split content into paragraphs and process each
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    # Remove markdown links and clean text
+                    clean_para = para.replace('[الإثبات:', '').replace(']', '')
+                    processed_para = process_arabic(clean_para)
+                    try:
+                        story.append(Paragraph(processed_para, arabic_style))
+                    except:
+                        # Fallback for problematic text
+                        story.append(Spacer(1, 0.1*inch))
+            
+            story.append(Spacer(1, 0.3*inch))
+    
+    # Footer
+    story.append(Spacer(1, 0.5*inch))
+    footer_text = process_arabic(f"معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    story.append(Paragraph(footer_text, arabic_style))
+    
+    # Build PDF
+    doc.build(story)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    return pdf_data
 
 def ai_summary_report_page():
     """صفحة ملخص التقرير الذكي"""
@@ -1774,9 +2486,22 @@ def ai_summary_report_page():
     df_tweets = data.get('tweets')
     df_comments = data.get('comments')
     username = data.get('username', 'User')
-    
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
-    
+
+    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
+    if RATE_LIMITER_AVAILABLE:
+        mistral = EnhancedMistralAnalyzer(
+            api_keys=MISTRAL_KEYS,
+            api_url=MISTRAL_API_URL,
+            model=MISTRAL_MODEL,
+            temperature=MISTRAL_TEMPERATURE,
+            max_tokens=MISTRAL_MAX_TOKENS,
+            rate_limit_per_key=5,  # 5 requests per minute per key
+            timeout=60
+        )
+    else:
+        # Fallback to legacy analyzer
+        mistral = MistralAnalyzer(MISTRAL_KEYS)
+
     previous_sections = {}
     sections_list = [
         ("news_sources", "المصادر الإخبارية المعتمدة"),
@@ -2586,46 +3311,51 @@ def main():
                 data = st.session_state['extracted_data']
                 username = data.get('username', 'User')
                 
-                # Header for Detailed Report
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📄 Detailed Report with Evidence Links</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive and detailed analysis of @{username} with direct links to supporting tweets
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-                
                 # Generate Detailed Report
                 ai_detailed_report_page()
                 
-                # Download Button for Detailed Report
+                # Download Buttons for Detailed Report
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    # Check if report has been generated
-                    sections_list = [
-                        ("introduction", "Introduction"),
-                        ("news_sources", "News Sources Analysis"),
-                        ("network", "Social Network & Interactions"),
-                        ("main_topics", "Main Topics & Issues"),
-                        ("uae_content", "UAE-Related Content"),
-                        ("influence", "Influence & Reach"),
-                        ("political", "Political Orientation"),
-                        ("mb_links", "Muslim Brotherhood Links"),
-                        ("electronic_army", "Electronic Army Detection"),
-                        ("comments_content", "Comments Analysis"),
-                    ]
+                
+                # Check if report has been generated
+                sections_list = [
+                    ("introduction", "المقدمة"),
+                    ("news_sources", "المصادر الإخبارية المعتمدة"),
+                    ("network", "الشبكة الاجتماعية والتفاعلات"),
+                    ("main_topics", "القضايا والموضوعات الرئيسية"),
+                    ("uae_content", "المحتوى المتعلق بدولة الإمارات"),
+                    ("influence", "التأثير على وسائل التواصل"),
+                    ("political", "التوجهات السياسية العامة"),
+                    ("mb_links", "الارتباطات بجماعة الإخوان"),
+                    ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة"),
+                    ("comments_content", "تحليل التعليقات والنقاشات"),
+                ]
+                
+                # Check if at least one section exists
+                has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
+                
+                if has_report:
+                    # Check if PDF libraries are available
+                    pdf_available = True
+                    try:
+                        import reportlab
+                        import arabic_reshaper
+                        import bidi
+                    except ImportError:
+                        pdf_available = False
                     
-                    # Check if at least one section exists
-                    has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
+                    if pdf_available:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                    else:
+                        col1, col2 = st.columns([1, 1])
                     
-                    if has_report:
+                    with col1:
+                        # Text download
                         detailed_report = f"""
-Detailed Analysis Report with Evidence Links - Twitter Account
-Account: @{username}
-Analysis Date: {datetime.now().strftime('%d %B %Y - %H:%M')}
-Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if data.get('comments') is not None else 0:,} comments
+تقرير التحليل التفصيلي مع روابط الإثبات - حساب تويتر
+الحساب: @{username}
+تاريخ التحليل: {datetime.now().strftime('%d %B %Y - %H:%M')}
+حجم العينة: {len(data.get('tweets')):,} تغريدة | {len(data.get('comments')) if data.get('comments') is not None else 0:,} تعليق
 
 """
                         for section_key, section_title in sections_list:
@@ -2635,23 +3365,60 @@ Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if 
                         detailed_report += f"""
 
 {'='*60}
-Report ID: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
-Issue Date: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
-Report Type: Detailed Report with Evidence Links
+معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
+تاريخ الإصدار: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
+نوع التقرير: تقرير تحليل تفصيلي مع روابط الإثبات
 {'='*60}
 """
                         
-                        filename = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        filename_txt = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
                         st.download_button(
-                            label="💾 Download Detailed Report",
+                            label="📄 Download TXT",
                             data=detailed_report.encode('utf-8'),
-                            file_name=filename,
+                            file_name=filename_txt,
                             mime="text/plain",
                             use_container_width=True,
-                            type="primary"
+                            type="secondary"
                         )
+                    
+                    if pdf_available:
+                        with col2:
+                            # PDF download with better error handling
+                            if st.button("📑 Generate PDF", use_container_width=True, type="primary"):
+                                with st.spinner("Generating PDF..."):
+                                    try:
+                                        pdf_data = generate_pdf_report(username, sections_list, data)
+                                        filename_pdf = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                        st.download_button(
+                                            label="⬇️ Download PDF",
+                                            data=pdf_data,
+                                            file_name=filename_pdf,
+                                            mime="application/pdf",
+                                            use_container_width=True,
+                                            key="pdf_download_btn"
+                                        )
+                                    except Exception as e:
+                                        st.error(f"⚠️ Error generating PDF: {str(e)[:100]}")
+                                        st.info("💡 Please use TXT download instead.")
+                        
+                        with col3:
+                            st.markdown("""
+                            <div style="
+                                padding: 12px;
+                                background: #f0f9ff;
+                                border-radius: 8px;
+                                text-align: center;
+                                font-size: 0.9rem;
+                                color: #0369a1;
+                            ">
+                                ✨ Report Ready
+                            </div>
+                            """, unsafe_allow_html=True)
                     else:
-                        st.info("ℹ️ Generate the report above first, then you can download it here.")
+                        with col2:
+                            st.info("📄 TXT format available. PDF export requires additional libraries.")
+                else:
+                    st.info("ℹ️ Generate the report above first, then you can download it here.")
         
         # ============================================================
         # TAB 3: AI SUMMARY
