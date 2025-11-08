@@ -391,7 +391,48 @@ API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
+# Multiple Mistral API Keys for Rate Limit Resilience
+MISTRAL_KEYS: List[str] = [
+    "BhkR8enTgJufYmP9Z8ks5Ln6HXHp7MlQ",
+    "FPph1ViTo77ONNDsaEz37p3FJQkY5jPY",
+    "979RiVBzoIk0f9vovyXOPPAM4Rd88a2F",
+    "FYNVQtcSIOPWjQi2ACIicwpWcDjLCXRD",
+    "O17Iq9RmMsQmy0TnhdIjFjZ8DAcGYhRq",
+    "z8cR4w32DRnE8meEd1WbteRi5EXjCPpb",
+    "nbiq77t08ktW7n8nxl2UyiwO2gEHdHaA",
+    "yb0pZZjCeBNeCRzALuwJj3RaHmIUqUNn",
+    "6pdBLRZo08NW4h0EsZFFAts64ghqRb5u",
+    "Egw4ZmA0cb6zCYp6iDs2NIZDyRpkdZN4",
+    "O4wEppQCbjN4kWrGzXrHNoP4gsPnZQtp",
+    "ca9CyWXY1U8xgQox6PxtvGdveaTeh42w",
+    "BJ3rBW2EWTBnouiVilEwnDurUpw79HTc",
+    "KourVlZelmO2HPND7m1zH6jcBdkCwVwP",
+    "qBRwo8x0Hsp46I7RHPx9rT0gWD39gKAJ",
+    "g4GJ1a6fy0FYRFI6F1DjLPnF2W0yYH8R",
+    "ifvxjsJF6sadWo2T3ofIvYdqWMVz8F7J",
+    "mkQoxuJqF64csdCVxDWO45cGPqhSmU3v",
+    "FC5fAVYrag8d0OZx7TNG7dav94XbvB38",
+    "SyaX5rgxtulaxgsUscz18o5Tp4dTWCR4",
+    "Bt9bXLvrvuLcLPixxKYa4d33P8h8zAAI",
+    "s18ja2B4x8nFiiaPL6tdtUGLzsJLnfYC",
+    "KC0e1nzQOmDJq0SU7nS8NBy2ccWPyKcU",
+    "GPKvOdqjWSFofhjQX6OoTGvciJXqrTbx",
+    "PPmCIgn5DuyOU2ChKpzOR5KgY6iKZpEn",
+    "iGAZ4cPmQfgFFdmwJoyW2qyn298ia3Zo",
+    "uaOu9oHmqpMwp7HLAVcXVjH1D431ZyPd",
+    "3WyjwFBlQLeoBJngJHdwjtlRC4nk5YEj",
+    "x2iCU0Ru6n4XNAg9TdEh65RDnumbCosH",
+    "G8bgrr14kwbojRgj9gRl5y3Y3UMq7wc9",
+    "4IlbiW9YkrGmRpKL5iBY4vPjfF58P0Ot",
+    "akABOZ5CJb1MmeMbVq2msDOx8AceHHfq",
+    "DtcSNZAwk0oj1NzOdwLFVtVYWu5o3Bij",
+    "5s9CiAuTnSGSULw94vrZaw8ymSsmYDmd",
+    "NX8oYtaJjjFzXUsVTOZml4yc58s5bQ0Y",
+    "4cLXjFMjU8QT4pcsoNeLPUOzjmlXjLlm",
+    "K8wNVj71msOwgQ6vVQ1nfZeZEKVp3hHj",
+    "dmgNRyqcqzAmCcKNKlirIukBIdlwhsJ3",
+    "bNveWmpWZmoou7wsT5j3eAFZnKmksbUE",
+]
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
 MISTRAL_MODEL = "mistral-large-latest"
 MISTRAL_TEMPERATURE = 0.3
@@ -821,12 +862,9 @@ class TwitterExtractor:
 # MISTRAL AI ANALYZER
 # ============================================================
 class MistralAnalyzer:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
+    def __init__(self, api_keys: List[str]):
+        self.api_keys = api_keys
+        self.current_key_index = 0
         self.session = self._create_session()
         
     def _create_session(self) -> requests.Session:
@@ -834,51 +872,120 @@ class MistralAnalyzer:
         retry_strategy = Retry(
             total=3,
             backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
+            status_forcelist=[500, 502, 503, 504],  # Removed 429 to handle manually
             allowed_methods=["POST"]
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         return session
+    
+    def _get_current_key(self) -> str:
+        """Get the current API key"""
+        return self.api_keys[self.current_key_index]
+    
+    def _switch_to_next_key(self) -> bool:
+        """Switch to next API key. Returns True if switched, False if no more keys"""
+        if self.current_key_index < len(self.api_keys) - 1:
+            self.current_key_index += 1
+            return True
+        return False
+    
+    def _reset_key_index(self):
+        """Reset to first key for next request"""
+        self.current_key_index = 0
 
     def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with optimized error handling"""
+        """Analyze prompt with Mistral AI with automatic key switching on rate limits/timeouts"""
         payload = {
             "model": MISTRAL_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": MISTRAL_TEMPERATURE,
             "max_tokens": max_tokens
         }
-        for attempt in range(3):
-            try:
-                response = self.session.post(
-                    MISTRAL_API_URL,
-                    headers=self.headers,
-                    json=payload,
-                    timeout=120
-                )
-                if response.status_code == 200:
-                    return response.json()['choices'][0]['message']['content']
-                elif response.status_code == 429:
-                    wait_time = 2 * (attempt + 1)
-                    time.sleep(wait_time)
-                elif response.status_code >= 500:
-                    if attempt < 2:
-                        time.sleep(2 * (attempt + 1))
-                    continue
-                else:
+        
+        # Reset to first key at start of each new request
+        self._reset_key_index()
+        
+        # Try all available keys
+        keys_tried = 0
+        while keys_tried < len(self.api_keys):
+            current_key = self._get_current_key()
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {current_key}"
+            }
+            
+            # Retry current key up to 2 times for transient errors
+            for attempt in range(2):
+                try:
+                    response = self.session.post(
+                        MISTRAL_API_URL,
+                        headers=headers,
+                        json=payload,
+                        timeout=120
+                    )
+                    
+                    if response.status_code == 200:
+                        return response.json()['choices'][0]['message']['content']
+                    
+                    elif response.status_code == 429:
+                        # Rate limit hit - switch to next key immediately
+                        if self._switch_to_next_key():
+                            keys_tried += 1
+                            break  # Break inner loop to try next key
+                        else:
+                            # No more keys available, wait and retry current key
+                            time.sleep(2)
+                            continue
+                    
+                    elif response.status_code >= 500:
+                        # Server error - retry with same key
+                        if attempt < 1:
+                            time.sleep(2)
+                            continue
+                        else:
+                            # After retries, try next key
+                            if self._switch_to_next_key():
+                                keys_tried += 1
+                                break
+                            return None
+                    
+                    else:
+                        # Other error - try next key
+                        if self._switch_to_next_key():
+                            keys_tried += 1
+                            break
+                        return None
+                
+                except requests.exceptions.Timeout:
+                    # Timeout - switch to next key immediately
+                    if self._switch_to_next_key():
+                        keys_tried += 1
+                        break  # Try next key
+                    elif attempt < 1:
+                        time.sleep(2)
+                        continue
                     return None
-            except requests.exceptions.Timeout:
-                if attempt < 2:
-                    time.sleep(2 * (attempt + 1))
+                
+                except requests.exceptions.RequestException:
+                    # Connection error - try next key
+                    if self._switch_to_next_key():
+                        keys_tried += 1
+                        break
+                    elif attempt < 1:
+                        time.sleep(2)
+                        continue
+                    return None
+                
+                except (KeyError, ValueError, json.JSONDecodeError):
+                    return None
+            
+            # If we broke out of inner loop, continue with next key
+            if keys_tried < len(self.api_keys):
                 continue
-            except requests.exceptions.RequestException:
-                if attempt < 2:
-                    time.sleep(2)
-                continue
-            except (KeyError, ValueError, json.JSONDecodeError):
-                return None
+            break
+        
         return None
 
 # ============================================================
@@ -1342,7 +1449,7 @@ def ai_detailed_report_page():
         st.warning("ما فيه بيانات متوفرة حق التحليل")
         return
     
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
+    mistral = MistralAnalyzer(MISTRAL_KEYS)
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
@@ -1775,7 +1882,7 @@ def ai_summary_report_page():
     df_comments = data.get('comments')
     username = data.get('username', 'User')
     
-    mistral = MistralAnalyzer(MISTRAL_API_KEY)
+    mistral = MistralAnalyzer(MISTRAL_KEYS)
     
     previous_sections = {}
     sections_list = [
