@@ -1539,17 +1539,24 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 # ============================================================
 # AI REPORT GENERATION - مع روابط إثبات بعد كل جملة + Hyperlinks
 # ============================================================
-def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+def generate_ai_section(mistral, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+    """Generate AI section with enhanced error handling and diagnostics"""
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
-    
-    # First attempt with full prompt
-    result = mistral.analyze(prompt, max_tokens)
-    
-    if result:
-        cleaned_result = result.replace('**', '').replace('*', '').strip()
-        st.session_state.ai_report_cache[section_name] = cleaned_result
-        return cleaned_result
+
+    # Show processing indicator
+    with st.spinner(f'جاري معالجة قسم: {section_name}...'):
+        # First attempt with full prompt
+        try:
+            result = mistral.analyze(prompt, max_tokens)
+
+            if result:
+                cleaned_result = result.replace('**', '').replace('*', '').strip()
+                st.session_state.ai_report_cache[section_name] = cleaned_result
+                return cleaned_result
+        except Exception as e:
+            st.warning(f"تحذير: فشلت المحاولة الأولى ({str(e)[:100]})")
+            # Continue to fallback
     
     # Fallback: Try with reduced prompt (shorter evidence)
     if "التغريدات مع روابطها:" in prompt or "التعليقات مع روابطها:" in prompt:
@@ -1576,13 +1583,26 @@ def generate_ai_section(mistral: MistralAnalyzer, section_name: str, prompt: str
                 reduced_lines.append(line)
         
         reduced_prompt = '\n'.join(reduced_lines)
-        result = mistral.analyze(reduced_prompt, max_tokens)
-        
-        if result:
-            cleaned_result = result.replace('**', '').replace('*', '').strip()
-            st.session_state.ai_report_cache[section_name] = cleaned_result
-            return cleaned_result
-    
+
+        try:
+            result = mistral.analyze(reduced_prompt, max_tokens)
+
+            if result:
+                cleaned_result = result.replace('**', '').replace('*', '').strip()
+                st.session_state.ai_report_cache[section_name] = cleaned_result
+                return cleaned_result
+        except Exception as e:
+            st.warning(f"تحذير: فشلت المحاولة الثانية ({str(e)[:100]})")
+
+    # Show health report if using enhanced analyzer
+    if RATE_LIMITER_AVAILABLE and hasattr(mistral, 'get_health_report'):
+        try:
+            health = mistral.get_health_report()
+            available_keys = sum(1 for stats in health.values() if stats['is_available'])
+            st.warning(f"⚠️ مفاتيح API المتاحة: {available_keys}/{len(health)}")
+        except:
+            pass
+
     # If still failed, return error with suggestion
     return f"⚠️ لم نتمكن من إنشاء القسم. جرب تقليل نطاق التاريخ أو أعد المحاولة."
 
@@ -1915,9 +1935,26 @@ def ai_detailed_report_page():
             rate_limit_per_key=5,  # 5 requests per minute per key
             timeout=60
         )
+        st.success("✅ استخدام محلل Mistral المحسّن مع الحماية من تجاوز الحدود")
+
+        # Show API health status in expander
+        with st.expander("🔍 عرض حالة مفاتيح API", expanded=False):
+            try:
+                health = mistral.get_health_report()
+                st.write(f"**إجمالي المفاتيح:** {len(health)}")
+                available = sum(1 for s in health.values() if s['is_available'])
+                st.write(f"**المفاتيح المتاحة:** {available}")
+
+                for key_id, stats in health.items():
+                    status_emoji = "✅" if stats['is_available'] else "❌"
+                    st.write(f"{status_emoji} {key_id}: صحة {stats['health_score']:.0f}%, نجاح {stats['success_rate']:.0f}%")
+            except Exception as e:
+                st.write(f"تعذر جلب التقرير الصحي: {str(e)[:100]}")
     else:
         # Fallback to legacy analyzer
         mistral = MistralAnalyzer(MISTRAL_KEYS)
+        st.warning("⚠️ استخدام المحلل القديم (المحلل المحسّن غير متاح)")
+        st.write(f"عدد مفاتيح API: {len(MISTRAL_KEYS)}")
 
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
@@ -2498,9 +2535,26 @@ def ai_summary_report_page():
             rate_limit_per_key=5,  # 5 requests per minute per key
             timeout=60
         )
+        st.success("✅ استخدام محلل Mistral المحسّن مع الحماية من تجاوز الحدود")
+
+        # Show API health status in expander
+        with st.expander("🔍 عرض حالة مفاتيح API", expanded=False):
+            try:
+                health = mistral.get_health_report()
+                st.write(f"**إجمالي المفاتيح:** {len(health)}")
+                available = sum(1 for s in health.values() if s['is_available'])
+                st.write(f"**المفاتيح المتاحة:** {available}")
+
+                for key_id, stats in health.items():
+                    status_emoji = "✅" if stats['is_available'] else "❌"
+                    st.write(f"{status_emoji} {key_id}: صحة {stats['health_score']:.0f}%, نجاح {stats['success_rate']:.0f}%")
+            except Exception as e:
+                st.write(f"تعذر جلب التقرير الصحي: {str(e)[:100]}")
     else:
         # Fallback to legacy analyzer
         mistral = MistralAnalyzer(MISTRAL_KEYS)
+        st.warning("⚠️ استخدام المحلل القديم (المحلل المحسّن غير متاح)")
+        st.write(f"عدد مفاتيح API: {len(MISTRAL_KEYS)}")
 
     previous_sections = {}
     sections_list = [
