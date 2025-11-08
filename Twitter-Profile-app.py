@@ -2258,6 +2258,126 @@ def ai_detailed_report_page():
     progress_bar.progress(100)
     status_text.empty()
 
+def generate_pdf_report(username: str, sections_list: list, report_data: dict) -> bytes:
+    """Generate PDF report with Arabic support"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from arabic_reshaper import reshape
+    from bidi.algorithm import get_display
+    import io
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles for RTL Arabic text
+    arabic_style = ParagraphStyle(
+        'Arabic',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        alignment=TA_RIGHT,
+        leading=20,
+        rightIndent=0,
+        leftIndent=0,
+        spaceAfter=12,
+        wordWrap='RTL'
+    )
+    
+    title_style = ParagraphStyle(
+        'ArabicTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=16,
+        alignment=TA_CENTER,
+        leading=24,
+        spaceAfter=20,
+        textColor='#1f2937'
+    )
+    
+    section_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=14,
+        alignment=TA_RIGHT,
+        leading=20,
+        spaceAfter=15,
+        spaceBefore=15,
+        textColor='#374151'
+    )
+    
+    def process_arabic(text):
+        """Process Arabic text for proper display in PDF"""
+        if not text:
+            return ""
+        # Reshape Arabic text
+        reshaped_text = reshape(text)
+        # Apply bidirectional algorithm
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+    
+    # Title
+    title_text = process_arabic(f"تقرير التحليل التفصيلي - حساب @{username}")
+    story.append(Paragraph(title_text, title_style))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Report Info
+    date_str = datetime.now().strftime('%d %B %Y - %H:%M')
+    tweets_count = len(report_data.get('tweets', [])) if report_data.get('tweets') is not None else 0
+    comments_count = len(report_data.get('comments', [])) if report_data.get('comments') is not None and not report_data.get('comments').empty else 0
+    
+    info_text = process_arabic(f"تاريخ التحليل: {date_str}")
+    story.append(Paragraph(info_text, arabic_style))
+    
+    sample_text = process_arabic(f"حجم العينة: {tweets_count:,} تغريدة | {comments_count:,} تعليق")
+    story.append(Paragraph(sample_text, arabic_style))
+    story.append(Spacer(1, 0.5*inch))
+    
+    # Add sections
+    for section_key, section_title in sections_list:
+        if section_key in st.session_state.ai_report_cache:
+            # Section title
+            section_title_ar = process_arabic(section_title)
+            story.append(Paragraph(section_title_ar, section_style))
+            
+            # Section content
+            content = st.session_state.ai_report_cache[section_key]
+            
+            # Split content into paragraphs and process each
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    # Remove markdown links and clean text
+                    clean_para = para.replace('[الإثبات:', '').replace(']', '')
+                    processed_para = process_arabic(clean_para)
+                    try:
+                        story.append(Paragraph(processed_para, arabic_style))
+                    except:
+                        # Fallback for problematic text
+                        story.append(Spacer(1, 0.1*inch))
+            
+            story.append(Spacer(1, 0.3*inch))
+    
+    # Footer
+    story.append(Spacer(1, 0.5*inch))
+    footer_text = process_arabic(f"معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+    story.append(Paragraph(footer_text, arabic_style))
+    
+    # Build PDF
+    doc.build(story)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    return pdf_data
+
 def ai_summary_report_page():
     """صفحة ملخص التقرير الذكي"""
     if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
@@ -3093,33 +3213,36 @@ def main():
                 # Generate Detailed Report
                 ai_detailed_report_page()
                 
-                # Download Button for Detailed Report
+                # Download Buttons for Detailed Report
                 st.markdown("<br>", unsafe_allow_html=True)
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    # Check if report has been generated
-                    sections_list = [
-                        ("introduction", "Introduction"),
-                        ("news_sources", "News Sources Analysis"),
-                        ("network", "Social Network & Interactions"),
-                        ("main_topics", "Main Topics & Issues"),
-                        ("uae_content", "UAE-Related Content"),
-                        ("influence", "Influence & Reach"),
-                        ("political", "Political Orientation"),
-                        ("mb_links", "Muslim Brotherhood Links"),
-                        ("electronic_army", "Electronic Army Detection"),
-                        ("comments_content", "Comments Analysis"),
-                    ]
+                
+                # Check if report has been generated
+                sections_list = [
+                    ("introduction", "المقدمة"),
+                    ("news_sources", "المصادر الإخبارية المعتمدة"),
+                    ("network", "الشبكة الاجتماعية والتفاعلات"),
+                    ("main_topics", "القضايا والموضوعات الرئيسية"),
+                    ("uae_content", "المحتوى المتعلق بدولة الإمارات"),
+                    ("influence", "التأثير على وسائل التواصل"),
+                    ("political", "التوجهات السياسية العامة"),
+                    ("mb_links", "الارتباطات بجماعة الإخوان"),
+                    ("electronic_army", "الجيوش الإلكترونية والحملات المنظمة"),
+                    ("comments_content", "تحليل التعليقات والنقاشات"),
+                ]
+                
+                # Check if at least one section exists
+                has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
+                
+                if has_report:
+                    col1, col2, col3 = st.columns([1, 1, 1])
                     
-                    # Check if at least one section exists
-                    has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
-                    
-                    if has_report:
+                    with col1:
+                        # Text download
                         detailed_report = f"""
-Detailed Analysis Report with Evidence Links - Twitter Account
-Account: @{username}
-Analysis Date: {datetime.now().strftime('%d %B %Y - %H:%M')}
-Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if data.get('comments') is not None else 0:,} comments
+تقرير التحليل التفصيلي مع روابط الإثبات - حساب تويتر
+الحساب: @{username}
+تاريخ التحليل: {datetime.now().strftime('%d %B %Y - %H:%M')}
+حجم العينة: {len(data.get('tweets')):,} تغريدة | {len(data.get('comments')) if data.get('comments') is not None else 0:,} تعليق
 
 """
                         for section_key, section_title in sections_list:
@@ -3129,23 +3252,53 @@ Sample Size: {len(data.get('tweets')):,} tweets | {len(data.get('comments')) if 
                         detailed_report += f"""
 
 {'='*60}
-Report ID: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
-Issue Date: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
-Report Type: Detailed Report with Evidence Links
+معرف التقرير: DETAILED-ANALYSIS-{datetime.now().strftime('%Y%m%d-%H%M%S')}
+تاريخ الإصدار: {datetime.now().strftime('%d %B %Y - %H:%M:%S')}
+نوع التقرير: تقرير تحليل تفصيلي مع روابط الإثبات
 {'='*60}
 """
                         
-                        filename = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        filename_txt = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
                         st.download_button(
-                            label="💾 Download Detailed Report",
+                            label="📄 Download TXT",
                             data=detailed_report.encode('utf-8'),
-                            file_name=filename,
+                            file_name=filename_txt,
                             mime="text/plain",
                             use_container_width=True,
-                            type="primary"
+                            type="secondary"
                         )
-                    else:
-                        st.info("ℹ️ Generate the report above first, then you can download it here.")
+                    
+                    with col2:
+                        # PDF download
+                        try:
+                            pdf_data = generate_pdf_report(username, sections_list, data)
+                            filename_pdf = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                            st.download_button(
+                                label="📑 Download PDF",
+                                data=pdf_data,
+                                file_name=filename_pdf,
+                                mime="application/pdf",
+                                use_container_width=True,
+                                type="primary"
+                            )
+                        except Exception as e:
+                            st.error(f"Error generating PDF: {str(e)}")
+                    
+                    with col3:
+                        st.markdown("""
+                        <div style="
+                            padding: 12px;
+                            background: #f0f9ff;
+                            border-radius: 8px;
+                            text-align: center;
+                            font-size: 0.9rem;
+                            color: #0369a1;
+                        ">
+                            ✨ Report Ready
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("ℹ️ Generate the report above first, then you can download it here.")
         
         # ============================================================
         # TAB 3: AI SUMMARY
