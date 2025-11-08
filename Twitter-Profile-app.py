@@ -2554,7 +2554,7 @@ def main():
         with col1:
             logo_col, title_col = st.columns([0.3, 2.7])
             with logo_col:
-                st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU", width=60)
+                st.image("https://www.google.com/url?sa=i&url=https%3A%2F%2Fteeone.co.uk%2Fproducts%2Ffree-embroidery-setup&psig=AOvVaw2HdssAv25rzi30TOWQRcwV&ust=1762695846916000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCJjy1vDX4pADFQAAAAAdAAAAABAE", width=60)
             with title_col:
                 st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
         with col2:
