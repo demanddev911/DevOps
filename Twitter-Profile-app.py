@@ -2260,16 +2260,19 @@ def ai_detailed_report_page():
 
 def generate_pdf_report(username: str, sections_list: list, report_data: dict) -> bytes:
     """Generate PDF report with Arabic support"""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-    from reportlab.lib.enums import TA_RIGHT, TA_CENTER
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    from arabic_reshaper import reshape
-    from bidi.algorithm import get_display
-    import io
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from arabic_reshaper import reshape
+        from bidi.algorithm import get_display
+        import io
+    except ImportError as e:
+        raise ImportError(f"PDF libraries not available. Please install: pip install reportlab arabic-reshaper python-bidi")
     
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
@@ -3234,7 +3237,19 @@ def main():
                 has_report = any(section_key in st.session_state.ai_report_cache for section_key, _ in sections_list)
                 
                 if has_report:
-                    col1, col2, col3 = st.columns([1, 1, 1])
+                    # Check if PDF libraries are available
+                    pdf_available = True
+                    try:
+                        import reportlab
+                        import arabic_reshaper
+                        import bidi
+                    except ImportError:
+                        pdf_available = False
+                    
+                    if pdf_available:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                    else:
+                        col1, col2 = st.columns([1, 1])
                     
                     with col1:
                         # Text download
@@ -3268,35 +3283,42 @@ def main():
                             type="secondary"
                         )
                     
-                    with col2:
-                        # PDF download
-                        try:
-                            pdf_data = generate_pdf_report(username, sections_list, data)
-                            filename_pdf = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                            st.download_button(
-                                label="📑 Download PDF",
-                                data=pdf_data,
-                                file_name=filename_pdf,
-                                mime="application/pdf",
-                                use_container_width=True,
-                                type="primary"
-                            )
-                        except Exception as e:
-                            st.error(f"Error generating PDF: {str(e)}")
-                    
-                    with col3:
-                        st.markdown("""
-                        <div style="
-                            padding: 12px;
-                            background: #f0f9ff;
-                            border-radius: 8px;
-                            text-align: center;
-                            font-size: 0.9rem;
-                            color: #0369a1;
-                        ">
-                            ✨ Report Ready
-                        </div>
-                        """, unsafe_allow_html=True)
+                    if pdf_available:
+                        with col2:
+                            # PDF download with better error handling
+                            if st.button("📑 Generate PDF", use_container_width=True, type="primary"):
+                                with st.spinner("Generating PDF..."):
+                                    try:
+                                        pdf_data = generate_pdf_report(username, sections_list, data)
+                                        filename_pdf = f"Detailed_Report_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                        st.download_button(
+                                            label="⬇️ Download PDF",
+                                            data=pdf_data,
+                                            file_name=filename_pdf,
+                                            mime="application/pdf",
+                                            use_container_width=True,
+                                            key="pdf_download_btn"
+                                        )
+                                    except Exception as e:
+                                        st.error(f"⚠️ Error generating PDF: {str(e)[:100]}")
+                                        st.info("💡 Please use TXT download instead.")
+                        
+                        with col3:
+                            st.markdown("""
+                            <div style="
+                                padding: 12px;
+                                background: #f0f9ff;
+                                border-radius: 8px;
+                                text-align: center;
+                                font-size: 0.9rem;
+                                color: #0369a1;
+                            ">
+                                ✨ Report Ready
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        with col2:
+                            st.info("📄 TXT format available. PDF export requires additional libraries.")
                 else:
                     st.info("ℹ️ Generate the report above first, then you can download it here.")
         
