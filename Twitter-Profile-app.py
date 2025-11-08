@@ -35,13 +35,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-# Import enhanced Mistral analyzer with rate limiting
+# Import enhanced Gemini analyzer with rate limiting
 try:
-    from mistral_rate_limiter import EnhancedMistralAnalyzer
-    RATE_LIMITER_AVAILABLE = True
+    from gemini_rate_limiter import EnhancedGeminiAnalyzer
+    GEMINI_AVAILABLE = True
 except ImportError as e:
-    RATE_LIMITER_AVAILABLE = False
-    print(f"Warning: Enhanced rate limiter not available: {e}")
+    GEMINI_AVAILABLE = False
+    print(f"Warning: Enhanced Gemini analyzer not available: {e}")
     # Will use legacy MistralAnalyzer as fallback
 
 # ============================================================
@@ -529,7 +529,18 @@ API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-# Multiple Mistral API Keys for Rate Limit Resilience
+# Google Gemini API Keys for Rate Limit Resilience
+# Get your API keys from: https://makersuite.google.com/app/apikey
+GEMINI_KEYS: List[str] = [
+    "AIzaSyDEMOKEY1-REPLACE_WITH_YOUR_ACTUAL_KEY",
+    "AIzaSyDEMOKEY2-REPLACE_WITH_YOUR_ACTUAL_KEY",
+    "AIzaSyDEMOKEY3-REPLACE_WITH_YOUR_ACTUAL_KEY",
+]
+GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_TEMPERATURE = 0.3
+GEMINI_MAX_TOKENS = 4000
+
+# Legacy Mistral API Keys (for fallback compatibility only)
 MISTRAL_KEYS: List[str] = [
     "BhkR8enTgJufYmP9Z8ks5Ln6HXHp7MlQ",
     "FPph1ViTo77ONNDsaEz37p3FJQkY5jPY",
@@ -1539,7 +1550,7 @@ def run_extraction(username, target_posts, target_replies, max_pages, fetch_comm
 # ============================================================
 # AI REPORT GENERATION - مع روابط إثبات بعد كل جملة + Hyperlinks
 # ============================================================
-def generate_ai_section(mistral, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
+def generate_ai_section(ai_analyzer, section_name: str, prompt: str, max_tokens: int = 2000) -> str:
     """Generate AI section with enhanced error handling and diagnostics"""
     if section_name in st.session_state.ai_report_cache:
         return st.session_state.ai_report_cache[section_name]
@@ -1548,7 +1559,7 @@ def generate_ai_section(mistral, section_name: str, prompt: str, max_tokens: int
     with st.spinner(f'جاري معالجة قسم: {section_name}...'):
         # First attempt with full prompt
         try:
-            result = mistral.analyze(prompt, max_tokens)
+            result = ai_analyzer.analyze(prompt, max_tokens)
 
             if result:
                 cleaned_result = result.replace('**', '').replace('*', '').strip()
@@ -1585,7 +1596,7 @@ def generate_ai_section(mistral, section_name: str, prompt: str, max_tokens: int
         reduced_prompt = '\n'.join(reduced_lines)
 
         try:
-            result = mistral.analyze(reduced_prompt, max_tokens)
+            result = ai_analyzer.analyze(reduced_prompt, max_tokens)
 
             if result:
                 cleaned_result = result.replace('**', '').replace('*', '').strip()
@@ -1595,9 +1606,9 @@ def generate_ai_section(mistral, section_name: str, prompt: str, max_tokens: int
             st.warning(f"تحذير: فشلت المحاولة الثانية ({str(e)[:100]})")
 
     # Show health report if using enhanced analyzer
-    if RATE_LIMITER_AVAILABLE and hasattr(mistral, 'get_health_report'):
+    if GEMINI_AVAILABLE and hasattr(ai_analyzer, 'get_health_report'):
         try:
-            health = mistral.get_health_report()
+            health = ai_analyzer.get_health_report()
             available_keys = sum(1 for stats in health.values() if stats['is_available'])
             st.warning(f"⚠️ مفاتيح API المتاحة: {available_keys}/{len(health)}")
         except:
@@ -1924,23 +1935,22 @@ def ai_detailed_report_page():
     if 'ai_report_cache' in st.session_state:
         st.session_state.ai_report_cache.clear()
 
-    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
-    if RATE_LIMITER_AVAILABLE:
-        mistral = EnhancedMistralAnalyzer(
-            api_keys=MISTRAL_KEYS,
-            api_url=MISTRAL_API_URL,
-            model=MISTRAL_MODEL,
-            temperature=MISTRAL_TEMPERATURE,
-            max_tokens=MISTRAL_MAX_TOKENS,
-            rate_limit_per_key=5,  # 5 requests per minute per key
+    # Initialize analyzer with smart rate limiting (Gemini preferred, Mistral as fallback)
+    if GEMINI_AVAILABLE:
+        ai_analyzer = EnhancedGeminiAnalyzer(
+            api_keys=GEMINI_KEYS,
+            model=GEMINI_MODEL,
+            temperature=GEMINI_TEMPERATURE,
+            max_tokens=GEMINI_MAX_TOKENS,
+            rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
             timeout=60
         )
-        st.success("✅ استخدام محلل Mistral المحسّن مع الحماية من تجاوز الحدود")
+        st.success("✅ استخدام محلل Google Gemini 1.5 Flash المحسّن مع الحماية من تجاوز الحدود")
 
         # Show API health status in expander
-        with st.expander("🔍 عرض حالة مفاتيح API", expanded=False):
+        with st.expander("🔍 عرض حالة مفاتيح Gemini API", expanded=False):
             try:
-                health = mistral.get_health_report()
+                health = ai_analyzer.get_health_report()
                 st.write(f"**إجمالي المفاتيح:** {len(health)}")
                 available = sum(1 for s in health.values() if s['is_available'])
                 st.write(f"**المفاتيح المتاحة:** {available}")
@@ -1951,10 +1961,10 @@ def ai_detailed_report_page():
             except Exception as e:
                 st.write(f"تعذر جلب التقرير الصحي: {str(e)[:100]}")
     else:
-        # Fallback to legacy analyzer
-        mistral = MistralAnalyzer(MISTRAL_KEYS)
-        st.warning("⚠️ استخدام المحلل القديم (المحلل المحسّن غير متاح)")
-        st.write(f"عدد مفاتيح API: {len(MISTRAL_KEYS)}")
+        # Fallback to legacy Mistral analyzer
+        ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
+        st.warning("⚠️ استخدام محلل Mistral القديم (Gemini غير متاح)")
+        st.write(f"عدد مفاتيح Mistral API: {len(MISTRAL_KEYS)}")
 
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
@@ -2020,7 +2030,7 @@ def ai_detailed_report_page():
 
 اكتب بأسلوب احترافي ومباشر من دون زخرفة. ما تستخدم أي رموز أو علامات نجمية.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 5000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 5000)
             
         elif section_key == "news_sources":
             prompt = f"""أنت محلل إعلامي خبير. حلل المصادر الإخبارية اللي يعتمد عليها الحساب @{username}.
@@ -2048,7 +2058,7 @@ def ai_detailed_report_page():
 
 اكتب بأسلوب تحليلي احترافي. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 8000)
             
         elif section_key == "network":
             prompt = f"""أنت محلل شبكات اجتماعية خبير. حلل الشبكة الاجتماعية حق الحساب @{username}.
@@ -2074,7 +2084,7 @@ def ai_detailed_report_page():
 
 اكتب بأسلوب تحليلي. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 8000)
             
         elif section_key == "main_topics":
             prompt = f"""أنت محلل محتوى خبير. حلل القضايا والموضوعات اللي يركز عليها الحساب @{username}.
@@ -2102,7 +2112,7 @@ def ai_detailed_report_page():
 
 اكتب بأسلوب تحليلي شامل. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 10000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 10000)
             
         elif section_key == "uae_content":
             # Mistral هو اللي يحدد التغريدات الإماراتية
@@ -2140,7 +2150,7 @@ def ai_detailed_report_page():
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية.
 
 اكتب قسماً كاملاً (700-1000 كلمة)."""
-            content = generate_ai_section(mistral, section_key, prompt, 12000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 12000)
             
         elif section_key == "influence":
             total_likes = int(df_tweets['likes'].sum())
@@ -2183,7 +2193,7 @@ def ai_detailed_report_page():
 
 اكتب بأسلوب تحليلي واضح. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 8000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 8000)
             
         elif section_key == "political":
             prompt = f"""أنت محلل سياسي خبير. حلل التوجهات السياسية حق الحساب @{username}.
@@ -2209,7 +2219,7 @@ def ai_detailed_report_page():
 
 كن دقيقاً وموضوعياً. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 10000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 10000)
             
         elif section_key == "mb_links":
             prompt = f"""أنت محلل أمني متخصص في رصد التنظيمات. حلل بدقة عالية أي ارتباطات بجماعة الإخوان المسلمين.
@@ -2236,7 +2246,7 @@ def ai_detailed_report_page():
 
 كن دقيقاً وموضوعياً. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-            content = generate_ai_section(mistral, section_key, prompt, 12000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 12000)
             
         elif section_key == "electronic_army":
             if df_comments is None or df_comments.empty:
@@ -2281,7 +2291,7 @@ def ai_detailed_report_page():
 
 كن دقيقاً ومفصلاً. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
-                content = generate_ai_section(mistral, section_key, prompt, 12000)
+                content = generate_ai_section(ai_analyzer, section_key, prompt, 12000)
                 
         elif section_key == "comments_content":
             if df_comments is None or df_comments.empty:
@@ -2330,7 +2340,7 @@ def ai_detailed_report_page():
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية.
 
 اكتب قسماً كاملاً (700-1000 كلمة)."""
-                content = generate_ai_section(mistral, section_key, prompt, 12000)
+                content = generate_ai_section(ai_analyzer, section_key, prompt, 12000)
         
         elif section_key == "critical_questions":
             all_previous_analysis = ""
@@ -2371,7 +2381,7 @@ def ai_detailed_report_page():
 اعتمد على الأدلة الفعلية. كن دقيقاً وموضوعياً ومهنياً. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
             
-            content = generate_ai_section(mistral, section_key, prompt, 15000)
+            content = generate_ai_section(ai_analyzer, section_key, prompt, 15000)
         
         # عرض القسم مع تحويل الروابط لـ hyperlinks
         display_report_section(section_title, content)
@@ -2524,23 +2534,22 @@ def ai_summary_report_page():
     df_comments = data.get('comments')
     username = data.get('username', 'User')
 
-    # Initialize analyzer with smart rate limiting (if available) or legacy fallback
-    if RATE_LIMITER_AVAILABLE:
-        mistral = EnhancedMistralAnalyzer(
-            api_keys=MISTRAL_KEYS,
-            api_url=MISTRAL_API_URL,
-            model=MISTRAL_MODEL,
-            temperature=MISTRAL_TEMPERATURE,
-            max_tokens=MISTRAL_MAX_TOKENS,
-            rate_limit_per_key=5,  # 5 requests per minute per key
+    # Initialize analyzer with smart rate limiting (Gemini preferred, Mistral as fallback)
+    if GEMINI_AVAILABLE:
+        ai_analyzer = EnhancedGeminiAnalyzer(
+            api_keys=GEMINI_KEYS,
+            model=GEMINI_MODEL,
+            temperature=GEMINI_TEMPERATURE,
+            max_tokens=GEMINI_MAX_TOKENS,
+            rate_limit_per_key=15,  # Gemini has higher limits: 15 requests per minute per key
             timeout=60
         )
-        st.success("✅ استخدام محلل Mistral المحسّن مع الحماية من تجاوز الحدود")
+        st.success("✅ استخدام محلل Google Gemini 1.5 Flash المحسّن مع الحماية من تجاوز الحدود")
 
         # Show API health status in expander
-        with st.expander("🔍 عرض حالة مفاتيح API", expanded=False):
+        with st.expander("🔍 عرض حالة مفاتيح Gemini API", expanded=False):
             try:
-                health = mistral.get_health_report()
+                health = ai_analyzer.get_health_report()
                 st.write(f"**إجمالي المفاتيح:** {len(health)}")
                 available = sum(1 for s in health.values() if s['is_available'])
                 st.write(f"**المفاتيح المتاحة:** {available}")
@@ -2551,10 +2560,10 @@ def ai_summary_report_page():
             except Exception as e:
                 st.write(f"تعذر جلب التقرير الصحي: {str(e)[:100]}")
     else:
-        # Fallback to legacy analyzer
-        mistral = MistralAnalyzer(MISTRAL_KEYS)
-        st.warning("⚠️ استخدام المحلل القديم (المحلل المحسّن غير متاح)")
-        st.write(f"عدد مفاتيح API: {len(MISTRAL_KEYS)}")
+        # Fallback to legacy Mistral analyzer
+        ai_analyzer = MistralAnalyzer(MISTRAL_KEYS)
+        st.warning("⚠️ استخدام محلل Mistral القديم (Gemini غير متاح)")
+        st.write(f"عدد مفاتيح Mistral API: {len(MISTRAL_KEYS)}")
 
     previous_sections = {}
     sections_list = [
@@ -2617,7 +2626,7 @@ def ai_summary_report_page():
 كن دقيقاً وموضوعياً. استخدم الأرقام. ما تستخدم رموز.
 الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
         
-        summary_content = generate_ai_section(mistral, "summary_conclusion", prompt, 12000)
+        summary_content = generate_ai_section(ai_analyzer, "summary_conclusion", prompt, 12000)
         
         display_report_section("📋 الملخص التنفيذي الشامل", summary_content)
         
