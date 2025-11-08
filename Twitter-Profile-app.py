@@ -1254,14 +1254,14 @@ def show_extraction_modal():
     col1, col2 = st.columns(2)
     with col1:
         username = st.text_input("X Username", value="thatdayin1992", help="Enter username without @")
-        target_posts = st.number_input("Target Posts", min_value=100, max_value=30000, value=5000, step=100)
-        target_replies = st.number_input("Target Replies", min_value=100, max_value=30000, value=5000, step=100)
+        target_posts = st.number_input("Target Posts", min_value=10, max_value=30000, value=5000, step=100)
+        target_replies = st.number_input("Target Replies", min_value=10, max_value=30000, value=5000, step=100)
     with col2:
         max_pages = st.slider("Maximum Pages", min_value=10, max_value=300, value=100, step=10)
         fetch_comments = st.checkbox("Fetch Comments on Posts", value=True)
         if fetch_comments:
-            max_tweets_for_comments = st.number_input("Max Posts to Check", min_value=10, max_value=5000, value=500, step=10)
-            comments_per_tweet = st.slider("Comments per Post", min_value=10, max_value=100, value=50, step=10)
+            max_tweets_for_comments = st.number_input("Max Posts to Check", min_value=10, max_value=5000, value=5, step=10)
+            comments_per_tweet = st.slider("Comments per Post", min_value=10, max_value=10, value=5, step=10)
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("Start Extraction", type="primary", use_container_width=True):
         if not username:
