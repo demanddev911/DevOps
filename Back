@@ -1667,28 +1667,6 @@ def ai_detailed_report_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Clean Date Filter Section
-    st.markdown("""
-    <div style="
-        direction: rtl;
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border-right: 5px solid #10b981;
-    ">
-        <h2 style="
-            color: #000000;
-            margin: 0;
-            font-weight: 700;
-            font-size: 1.375rem;
-            font-family: 'Cairo', sans-serif;
-            direction: rtl;
-        ">📅 تصفية حسب التاريخ</h2>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # Create date filter UI - Button on left side
     col1, col2, col3 = st.columns([0.6, 1, 1])
     
@@ -1886,7 +1864,20 @@ def ai_detailed_report_page():
     ]
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
-        status_text.info(f"عم ننشئ: {section_title}...")
+        status_text.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+        ">
+            ⏳ عم ننشئ: {section_title}...
+        </div>
+        """, unsafe_allow_html=True)
         progress_bar.progress(progress_val)
         
         if section_key == "introduction":
@@ -2265,7 +2256,7 @@ def ai_detailed_report_page():
         time.sleep(1)
     
     progress_bar.progress(100)
-    status_text.success("✅ تم إنشاء التقرير التفصيلي بنجاح!")
+    status_text.empty()
 
 def ai_summary_report_page():
     """صفحة ملخص التقرير الذكي"""
@@ -3098,16 +3089,6 @@ def main():
             else:
                 data = st.session_state['extracted_data']
                 username = data.get('username', 'User')
-                
-                # Header for Detailed Report
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
-                    <h2 style="color: white; margin: 0; font-size: 1.5rem;">📄 Detailed Report with Evidence Links</h2>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.95rem;">
-                        Comprehensive and detailed analysis of @{username} with direct links to supporting tweets
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
                 
                 # Generate Detailed Report
                 ai_detailed_report_page()
