@@ -28,6 +28,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
 
+# Import enhanced Mistral analyzer with rate limiting
+from mistral_rate_limiter import EnhancedMistralAnalyzer
+
 # ============================================================
 # PAGE CONFIGURATION
 # ============================================================
@@ -981,7 +984,10 @@ class TwitterExtractor:
         return all_comments
 
 # ============================================================
-# MISTRAL AI ANALYZER
+# MISTRAL AI ANALYZER (LEGACY - DEPRECATED)
+# NOTE: This class is kept for backward compatibility only.
+# New code should use EnhancedMistralAnalyzer from mistral_rate_limiter.py
+# which includes advanced rate limiting, circuit breakers, and health tracking.
 # ============================================================
 class MistralAnalyzer:
     def __init__(self, api_keys: List[str]):
@@ -1884,8 +1890,17 @@ def ai_detailed_report_page():
     # Clear the AI report cache when generating a new report with different dates
     if 'ai_report_cache' in st.session_state:
         st.session_state.ai_report_cache.clear()
-    
-    mistral = MistralAnalyzer(MISTRAL_KEYS)
+
+    # Initialize enhanced analyzer with smart rate limiting
+    mistral = EnhancedMistralAnalyzer(
+        api_keys=MISTRAL_KEYS,
+        api_url=MISTRAL_API_URL,
+        model=MISTRAL_MODEL,
+        temperature=MISTRAL_TEMPERATURE,
+        max_tokens=MISTRAL_MAX_TOKENS,
+        rate_limit_per_key=5,  # 5 requests per minute per key
+        timeout=60
+    )
     sample_tweets = df_tweets['text'].dropna().head(50000).tolist()
     sample_comments_list = []
     if df_comments is not None and not df_comments.empty:
@@ -2453,9 +2468,18 @@ def ai_summary_report_page():
     df_tweets = data.get('tweets')
     df_comments = data.get('comments')
     username = data.get('username', 'User')
-    
-    mistral = MistralAnalyzer(MISTRAL_KEYS)
-    
+
+    # Initialize enhanced analyzer with smart rate limiting
+    mistral = EnhancedMistralAnalyzer(
+        api_keys=MISTRAL_KEYS,
+        api_url=MISTRAL_API_URL,
+        model=MISTRAL_MODEL,
+        temperature=MISTRAL_TEMPERATURE,
+        max_tokens=MISTRAL_MAX_TOKENS,
+        rate_limit_per_key=5,  # 5 requests per minute per key
+        timeout=60
+    )
+
     previous_sections = {}
     sections_list = [
         ("news_sources", "المصادر الإخبارية المعتمدة"),
