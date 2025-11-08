@@ -1864,7 +1864,20 @@ def ai_detailed_report_page():
     ]
     
     for idx, (section_key, section_title, progress_val) in enumerate(sections):
-        status_text.info(f"عم ننشئ: {section_title}...")
+        status_text.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+        ">
+            ⏳ عم ننشئ: {section_title}...
+        </div>
+        """, unsafe_allow_html=True)
         progress_bar.progress(progress_val)
         
         if section_key == "introduction":
@@ -2243,7 +2256,7 @@ def ai_detailed_report_page():
         time.sleep(1)
     
     progress_bar.progress(100)
-    status_text.success("✅ تم إنشاء التقرير التفصيلي بنجاح!")
+    status_text.empty()
 
 def ai_summary_report_page():
     """صفحة ملخص التقرير الذكي"""
