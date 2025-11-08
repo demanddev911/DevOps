@@ -2552,8 +2552,11 @@ def main():
         # Header Section
         col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
-            st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU", width=60)
-            st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
+            logo_col, title_col = st.columns([0.3, 2.7])
+            with logo_col:
+                st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSq-jcOsEa4e0awGmHsDhvpURl04IkwVLoJ3tT0bU9xycRy3myQk7Q1IgkYYwaImOxApzo&usqp=CAU", width=60)
+            with title_col:
+                st.markdown("<h3 style='margin: 0 0 1rem 0; padding: 0;'>X Analytics Suite</h3>", unsafe_allow_html=True)
         with col2:
             if st.button("Start Extraction", type="primary", use_container_width=True, key="main_extraction_btn"):
                 show_extraction_modal()
