@@ -20,6 +20,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from typing import Dict, List, Optional
+import google.generativeai as genai
 import io
 import numpy as np
 import plotly.graph_objects as go
@@ -572,11 +573,11 @@ API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-MISTRAL_API_KEY = "gflYfwPnWUAE7ohltIi4CbLgzFWdR8KX"
-MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
-MISTRAL_MODEL = "mistral-large-latest"
+MISTRAL_API_KEY = "AIzaSyDQ363gYK7_u3vg-R-rnpzf36oOWkhhTds"  # Replace with your actual Gemini API key
+MISTRAL_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
+MISTRAL_MODEL = "gemini-2.0-flash-exp"
 MISTRAL_TEMPERATURE = 0.3
-MISTRAL_MAX_TOKENS = 4000
+MISTRAL_MAX_TOKENS = 8192  # Gemini 2.0 Flash supports up to 8K output tokens
 
 # ============================================================
 # TWITTER API CLASSES
@@ -1005,11 +1006,10 @@ class MistralAnalyzer:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
+            "Content-Type": "application/json"
         }
         self.session = self._create_session()
-        
+
     def _create_session(self) -> requests.Session:
         session = requests.Session()
         retry_strategy = Retry(
@@ -1024,23 +1024,35 @@ class MistralAnalyzer:
         return session
 
     def analyze(self, prompt: str, max_tokens: int = MISTRAL_MAX_TOKENS) -> Optional[str]:
-        """Analyze prompt with Mistral AI with optimized error handling"""
+        """Analyze prompt with Google Gemini AI with optimized error handling"""
+        # Google Gemini API format
         payload = {
-            "model": MISTRAL_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": MISTRAL_TEMPERATURE,
-            "max_tokens": max_tokens
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }],
+            "generationConfig": {
+                "temperature": MISTRAL_TEMPERATURE,
+                "maxOutputTokens": max_tokens
+            }
         }
+
+        # Add API key as URL parameter (Gemini requirement)
+        api_url = f"{MISTRAL_API_BASE_URL}?key={self.api_key}"
+
         for attempt in range(3):
             try:
                 response = self.session.post(
-                    MISTRAL_API_URL,
+                    api_url,
                     headers=self.headers,
                     json=payload,
                     timeout=120
                 )
                 if response.status_code == 200:
-                    return response.json()['choices'][0]['message']['content']
+                    # Parse Gemini response format
+                    result = response.json()
+                    return result['candidates'][0]['content']['parts'][0]['text']
                 elif response.status_code == 429:
                     wait_time = 2 * (attempt + 1)
                     time.sleep(wait_time)
@@ -1049,16 +1061,19 @@ class MistralAnalyzer:
                         time.sleep(2 * (attempt + 1))
                     continue
                 else:
+                    # Log error for debugging
+                    st.error(f"API Error {response.status_code}: {response.text}")
                     return None
             except requests.exceptions.Timeout:
                 if attempt < 2:
                     time.sleep(2 * (attempt + 1))
                 continue
-            except requests.exceptions.RequestException:
+            except requests.exceptions.RequestException as e:
                 if attempt < 2:
                     time.sleep(2)
                 continue
-            except (KeyError, ValueError, json.JSONDecodeError):
+            except (KeyError, ValueError, json.JSONDecodeError) as e:
+                st.error(f"خطأ في تحليل الاستجابة: {str(e)}")
                 return None
         return None
 
