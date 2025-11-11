@@ -1,0 +1,619 @@
+def ai_detailed_report_page():
+    """صفحة التقرير التفصيلي مع تصميم حديث وجذاب"""
+    if not st.session_state.data_loaded or 'extracted_data' not in st.session_state:
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            📊 لازم تستخرج البيانات أول من قسم لوحة التحكم
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("استخراج البيانات", type="primary"):
+            show_extraction_modal()
+        return
+    
+    data = st.session_state['extracted_data']
+    df_tweets = data.get('tweets')
+    df_comments = data.get('comments')
+    username = data.get('username', 'User')
+    
+    # التحقق من وجود التعليقات
+    if df_comments is None or df_comments.empty:
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ ما فيه تعليقات متوفرة حق التحليل. لازم تستخرج التعليقات أولاً من قسم لوحة التحكم.
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Parse dates in dataframes if not already parsed
+    if 'parsed_date' not in df_tweets.columns:
+        df_tweets = process_dataframe_for_analysis(df_tweets.copy())
+    if 'parsed_date' not in df_comments.columns:
+        df_comments_temp = df_comments.copy()
+        if 'comment_date' in df_comments_temp.columns:
+            df_comments_temp['created_at'] = df_comments_temp['comment_date']
+            df_comments_temp = process_dataframe_for_analysis(df_comments_temp)
+            df_comments = df_comments_temp
+    
+    # Get min and max dates from the data
+    try:
+        min_tweet_date = df_tweets['parsed_date'].min()
+        max_tweet_date = df_tweets['parsed_date'].max()
+        min_comment_date = df_comments['parsed_date'].min() if 'parsed_date' in df_comments.columns else min_tweet_date
+        max_comment_date = df_comments['parsed_date'].max() if 'parsed_date' in df_comments.columns else max_tweet_date
+        
+        overall_min_date = min(min_tweet_date, min_comment_date)
+        overall_max_date = max(max_tweet_date, max_comment_date)
+        
+        # Convert to date objects for the date picker
+        default_start_date = overall_min_date.date() if pd.notna(overall_min_date) else datetime.now().date()
+        default_end_date = overall_max_date.date() if pd.notna(overall_max_date) else datetime.now().date()
+    except Exception as e:
+        # Fallback to current date if parsing fails
+        default_start_date = datetime.now().date()
+        default_end_date = datetime.now().date()
+    
+    # Clean Professional Header
+    current_time = datetime.now().strftime("%d %B %Y - %H:%M")
+    st.markdown(f"""
+    <div style="
+        direction: rtl;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        font-family: 'Cairo', sans-serif;
+        border-right: 5px solid #3b82f6;
+    ">
+        <h1 style="
+            font-size: 2.25rem; 
+            margin: 0 0 12px 0; 
+            font-weight: 700;
+            direction: rtl;
+            color: #000000;
+        ">📊 تقرير التحليل التفصيلي</h1>
+        <h2 style="
+            font-size: 1.25rem; 
+            margin: 0 0 20px 0; 
+            font-weight: 600;
+            direction: rtl;
+            color: #000000;
+        ">حساب تويتر: @{username}</h2>
+        <div style="
+            display: flex;
+            gap: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            direction: rtl;
+        ">
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📅 تاريخ التحليل</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{current_time}</p>
+            </div>
+            <div>
+                <p style="
+                    font-size: 0.875rem; 
+                    margin: 0 0 5px 0;
+                    color: #000000;
+                    direction: rtl;
+                ">📈 حجم العينة</p>
+                <p style="
+                    font-size: 1rem; 
+                    margin: 0;
+                    font-weight: 600;
+                    direction: rtl;
+                    color: #000000;
+                ">{len(df_tweets):,} تغريدة | {len(df_comments):,} تعليق</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Clean Date Filter Section
+    st.markdown("""
+    <div style="
+        direction: rtl;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-right: 5px solid #10b981;
+    ">
+        <h2 style="
+            color: #000000;
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.375rem;
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+        ">📅 تصفية حسب التاريخ</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create date filter UI - Button on left side
+    col1, col2, col3 = st.columns([0.6, 1, 1])
+    
+    with col1:
+        st.markdown('<p style="margin-bottom: 10px; opacity: 0;">&nbsp;</p>', unsafe_allow_html=True)
+        generate_button = st.button(
+            "🔍 إنشاء التقرير",
+            type="primary",
+            use_container_width=True,
+            key="generate_detailed_report_btn"
+        )
+    
+    with col2:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ النهاية (إلى)</p>
+        """, unsafe_allow_html=True)
+        end_date = st.date_input(
+            "تاريخ النهاية",
+            value=default_end_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ النهاية لنطاق التقرير",
+            key="report_end_date",
+            label_visibility="collapsed"
+        )
+    
+    with col3:
+        st.markdown("""
+        <p style="
+            direction: rtl; 
+            margin-bottom: 12px; 
+            color: #000000; 
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: 'Cairo', sans-serif;
+            letter-spacing: -0.01em;
+        ">📆 تاريخ البداية (من)</p>
+        """, unsafe_allow_html=True)
+        start_date = st.date_input(
+            "تاريخ البداية",
+            value=default_start_date,
+            min_value=default_start_date,
+            max_value=default_end_date,
+            help="اختر تاريخ البداية لنطاق التقرير",
+            key="report_start_date",
+            label_visibility="collapsed"
+        )
+    
+    # Validation
+    date_validation_error = None
+    if start_date and end_date:
+        if start_date > end_date:
+            date_validation_error = True
+            st.markdown("""
+            <div style="
+                direction: rtl;
+                background: #fef3c7;
+                border-right: 4px solid #f59e0b;
+                padding: 20px 25px;
+                border-radius: 8px;
+                margin-top: 20px;
+                font-family: 'Cairo', sans-serif;
+                text-align: right;
+            ">
+                <span style="
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #92400e;
+                    direction: rtl;
+                ">⚠️ تاريخ البداية يجب أن يكون أقل من أو يساوي تاريخ النهاية</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        date_validation_error = True
+    
+    # Display validation success
+    if not date_validation_error and generate_button:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            background: #d1fae5;
+            border-right: 4px solid #10b981;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Cairo', sans-serif;
+            text-align: right;
+        ">
+            <span style="
+                font-size: 1rem;
+                font-weight: 600;
+                color: #065f46;
+                direction: rtl;
+            ">✅ سيتم إنشاء التقرير من {start_date.strftime('%Y-%m-%d')} ألى {end_date.strftime('%Y-%m-%d')}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if date_validation_error:
+        st.stop()
+    
+    if not generate_button:
+        st.markdown("""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            👆 اضغط على زر إنشاء التقرير لبدء التحليل
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Filter data based on date range
+    start_datetime = pd.Timestamp(start_date)
+    end_datetime = pd.Timestamp(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+    
+    # Filter tweets
+    df_tweets_filtered = df_tweets[
+        (df_tweets['parsed_date'] >= start_datetime) & 
+        (df_tweets['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Filter comments
+    df_comments_filtered = df_comments[
+        (df_comments['parsed_date'] >= start_datetime) & 
+        (df_comments['parsed_date'] <= end_datetime)
+    ].copy()
+    
+    # Check if filtered data is empty
+    if df_comments_filtered.empty:
+        st.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 16px 20px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border-right: 4px solid #ffc107;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+            font-size: 1rem;
+        ">
+            ⚠️ لا توجد تعليقات في الفترة المحددة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}. الرجاء اختيار نطاق تاريخ مختلف.
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+    
+    # Clear the AI report cache when generating a new report with different dates
+    if 'ai_report_cache' in st.session_state:
+        st.session_state.ai_report_cache.clear()
+    
+    # Use filtered data for report generation
+    df_comments = df_comments_filtered
+    df_tweets = df_tweets_filtered
+    
+    mistral = MistralAnalyzer(MISTRAL_API_KEY)
+    
+    # استخراج جميع التعليقات مع روابطها (بدون حدود)
+    evidence_text = "\n\n".join([
+        f"التعليق رقم {i+1}:\nالمعلق: @{row['commenter_username']}\nالنص: {row['comment_text']}\nالرابط: {row['comment_url']}"
+        for i, row in df_comments.iterrows()
+    ])
+    
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    sections = [
+        ("executive_summary", "ملخص تنفيذي واضح", 20),
+        ("pros_cons", "تحليل إيجابيات وسلبيات", 40),
+        ("complaints_classification", "تصنيف للشكاوى وتأثيرها على السمعة", 65),
+        ("public_opinion_insights", "أسباب خلف رأي الجمهور (Insight)", 90),
+    ]
+    
+    # Date range info for AI prompts
+    date_range_info = f"""
+نطاق التحليل الزمني:
+- تاريخ البداية: {start_date.strftime('%Y-%m-%d')}
+- تاريخ النهاية: {end_date.strftime('%Y-%m-%d')}
+- مدة التحليل: {(end_date - start_date).days + 1} يوم
+"""
+    
+    for idx, (section_key, section_title, progress_val) in enumerate(sections):
+        status_text.markdown(f"""
+        <div style="
+            direction: rtl;
+            text-align: right;
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-right: 4px solid #2196f3;
+            font-family: 'Cairo', sans-serif;
+            color: #000000;
+        ">
+            ⏳ عم ننشئ: {section_title}...
+        </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(progress_val)
+        
+        if section_key == "executive_summary":
+            # حساب الإحصائيات
+            comments_count = len(df_comments)
+            unique_commenters = df_comments['commenter_username'].nunique()
+            
+            prompt = f"""أنت محلل سمعة رقمية خبير. اكتب ملخص تنفيذي واضح وشامل حق حساب @{username} بناءً على تحليل التعليقات فقط.
+
+معلومات الحساب:
+- اسم المستخدم: @{username}
+- إجمالي التعليقات المحللة: {comments_count:,}
+- عدد المعلقين: {unique_commenters:,}
+
+{date_range_info}
+
+**مهم جداً**: يجب أن يبدأ التقرير بعنوان يتضمن نطاق التاريخ المحدد:
+"ملخص تنفيذي لتحليل سمعة حساب @{username} بناءً على التعليقات (من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')})"
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
+{evidence_text}
+
+المطلوب - اكتب ملخص تنفيذي شامل (500-700 كلمة) يتضمن:
+
+1. **نظرة عامة عن السمعة**: طبيعة التعليقات العامة على الحساب
+2. **أبرز النتائج**: أهم ما لاحظته في التعليقات (مدح، شكاوى، انتقادات، استفسارات)
+3. **نبرة التعليقات**: هل التعليقات إيجابية، سلبية، أو محايدة بشكل عام؟
+4. **السمعة الحالية**: تقييم السمعة بناءً على ردود فعل الجمهور في التعليقات
+5. **التوصيات السريعة**: أهم 3-5 نقاط يجب الانتباه لها
+
+**مهم جداً - طريقة كتابة روابط الإثبات:**
+"التعليقات تحتوي على شكاوى متكررة من التأخير [الإثبات: https://twitter.com/username/status/123456789]، وبعض المديح للخدمة [الإثبات: https://twitter.com/username/status/987654321]."
+
+**القواعد الإلزامية:**
+- كل نقطة تحليلية لازم يكون معاها رابط إثبات من التعليقات
+- الرابط: [الإثبات: رابط التعليق الكامل]
+- استخدم الروابط الفعلية من التعليقات فقط
+
+اكتب بأسلوب احترافي وواضح ومباشر. ما تستخدم رموز أو نجوم.
+الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
+            content = generate_ai_section(mistral, section_key, prompt, 8000)
+            
+        elif section_key == "pros_cons":
+            prompt = f"""أنت محلل سمعة رقمية خبير متخصص في تحليل الإيجابيات والسلبيات. حلل حساب @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
+
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
+{evidence_text}
+
+المطلوب - اكتب قسماً كاملاً (700-1000 كلمة) على شكل جدول مقارنة:
+
+**الجدول المطلوب:**
+اكتب جدول بهذا الشكل بالضبط:
+
+| الإيجابيات (Strengths) | السلبيات (Weaknesses) |
+|---|---|
+| **1. [اسم النقطة الإيجابية]**<br>الوصف التفصيلي للنقطة الإيجابية<br><br>الإثبات:<br>• [رابط التعليق 1]<br>• [رابط التعليق 2] | **1. [اسم النقطة السلبية]**<br>الوصف التفصيلي للنقطة السلبية<br><br>الإثبات:<br>• [رابط التعليق 1]<br>• [رابط التعليق 2]<br>• [رابط التعليق 3] |
+| **2. [نقطة إيجابية أخرى]**<br>الوصف...<br><br>الإثبات:<br>• [رابط] | **2. [نقطة سلبية أخرى]**<br>الوصف...<br><br>الإثبات:<br>• [رابط]<br>• [رابط] |
+
+**المطلوب:**
+1. اذكر 5-10 إيجابيات في العمود الأيسر (من التعليقات)
+2. اذكر 5-10 سلبيات في العمود الأيمن (من التعليقات)
+3. لكل نقطة: عنوان + وصف تفصيلي + روابط إثبات
+4. الإيجابيات: المديح، الشكر، التجارب الإيجابية، رضا العملاء
+5. السلبيات: الشكاوى، الانتقادات، التجارب السلبية، مشاكل الخدمة
+
+**بعد الجدول، اكتب:**
+
+**الخلاصة:**
+- أيش أكثر في التعليقات: الإيجابيات ولا السلبيات؟
+- شو تأثير هالإيجابيات والسلبيات على السمعة؟
+- التوصيات
+
+**القواعد الإلزامية:**
+- استخدم نفس تنسيق الجدول بالضبط (Markdown Table)
+- كل نقطة لازم يكون معاها 2-3 روابط تعليقات
+- استخدم الروابط الكاملة من التعليقات فقط
+- ما تستخدم رموز أو نجوم خارج الجدول
+
+اكتب بأسلوب موضوعي ومتوازن.
+الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
+            content = generate_ai_section(mistral, section_key, prompt, 10000)
+            
+        elif section_key == "complaints_classification":
+            
+            prompt = f"""أنت محلل سمعة رقمية متخصص في تصنيف الشكاوى وتقييم تأثيرها. حلل الشكاوى والمشاكل في حساب @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
+
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
+{evidence_text}
+
+المطلوب - اكتب قسماً كاملاً (800-1200 كلمة) يتضمن:
+
+**أولاً: تصنيف الشكاوى**
+صنف جميع الشكاوى والمشاكل الموجودة في التعليقات إلى فئات:
+
+1. **شكاوى الخدمة**: تأخير، جودة، إلخ
+2. **شكاوى التواصل**: عدم الرد، سوء المعاملة، إلخ
+3. **شكاوى التسعير**: أسعار مرتفعة، رسوم خفية، إلخ
+4. **شكاوى المنتج**: عيوب، جودة منخفضة، إلخ
+5. **شكاوى أخرى**: أي فئة إضافية
+
+لكل فئة:
+- عدد الشكاوى التقريبي
+- أمثلة محددة مع روابط إثبات (3-5 روابط لكل فئة)
+- مدى تكرار الشكوى
+
+**ثانياً: تأثير الشكاوى على السمعة**
+1. **مستوى الخطورة**: هل الشكاوى خطيرة؟ (منخفض/متوسط/مرتفع/حرج)
+2. **الانتشار**: هل الشكاوى منتشرة ومشتركة بين الجمهور؟
+3. **التأثير على القرار**: هل الشكاوى تمنع الناس من التعامل مع الحساب؟
+4. **احتمالية تصاعد الأزمة**: هل ممكن الموضوع يتفاقم؟
+
+**ثالثاً: التوصيات**
+- أولويات المعالجة (أي الشكاوى يجب حلها أولاً)
+- استراتيجية إصلاح السمعة
+
+**مهم جداً - طريقة كتابة روابط الإثبات:**
+"شكاوى الخدمة (20 شكوى تقريباً):
+- تأخير في التسليم [الإثبات: https://twitter.com/username/status/123456789]
+- جودة الخدمة ضعيفة [الإثبات: https://twitter.com/username/status/987654321]"
+
+**القواعد الإلزامية:**
+- كل شكوى مذكورة لازم يكون معاها 2-3 روابط إثبات
+- الرابط: [الإثبات: رابط التعليق الكامل]
+- استخدم الروابط الفعلية من التعليقات فقط
+
+اكتب بأسلوب تحليلي دقيق. ما تستخدم رموز أو نجوم.
+الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
+            content = generate_ai_section(mistral, section_key, prompt, 12000)
+            
+        elif section_key == "public_opinion_insights":
+            # الحصول على تحليلات سابقة
+            all_previous_analysis = ""
+            for prev_key, prev_title, _ in sections[:-1]:
+                if prev_key in st.session_state.ai_report_cache:
+                    all_previous_analysis += f"\n\n=== {prev_title} ===\n{st.session_state.ai_report_cache[prev_key][:1000]}"
+            
+            prompt = f"""أنت محلل استراتيجي خبير في فهم الرأي العام والدوافع النفسية. حلل الأسباب العميقة خلف رأي الجمهور حول @{username} بناءً على التعليقات فقط.
+
+{date_range_info}
+
+**ملاحظة مهمة**: التحليل يشمل فقط التعليقات في الفترة من {start_date.strftime('%Y-%m-%d')} إلى {end_date.strftime('%Y-%m-%d')}
+
+التحليلات السابقة:
+{all_previous_analysis}
+
+التعليقات مع روابطها (التعليقات المتاحة في الفترة المحددة فقط):
+{evidence_text}
+
+المطلوب - اكتب قسماً كاملاً (1000-1500 كلمة) يتضمن تحليلاً عميقاً للأسباب خلف رأي الجمهور (Insights):
+
+**أولاً: ليش الجمهور راضي أو غير راضي؟**
+1. **الأسباب الإيجابية (إن وجدت)**: ليش الناس يمدحون الحساب؟
+   - جودة الخدمة/المنتج
+   - سرعة الاستجابة
+   - الشفافية والمصداقية
+   - القيمة المضافة
+   - حط أمثلة محددة مع روابط (3-5 روابط)
+
+2. **الأسباب السلبية (إن وجدت)**: ليش الناس ينتقدون الحساب؟
+   - مشاكل الخدمة/المنتج
+   - ضعف التواصل
+   - عدم الوفاء بالوعود
+   - السعر المرتفع
+   - حط أمثلة محددة مع روابط (5-10 روابط)
+
+**ثانياً: العوامل المؤثرة على الرأي العام**
+1. **التجارب الشخصية**: كيف تجارب الناس الشخصية تأثر على رأيهم؟
+2. **التوقعات**: هل الحساب يلبي توقعات الجمهور؟
+3. **المقارنة**: هل الجمهور يقارن مع منافسين؟
+4. **السياق الاجتماعي**: هل فيه عوامل خارجية تأثر على الرأي العام؟
+
+**ثالثاً: الدوافع النفسية**
+1. **دوافع المادحين**: شو يخلي الناس يمدحون؟ (رضا، إعجاب، ولاء، إلخ)
+2. **دوافع المنتقدين**: شو يخلي الناس ينتقدون؟ (غضب، إحباط، خذلان، إلخ)
+3. **المشاعر السائدة**: حلل المشاعر العامة (إيجابية، سلبية، حيادية)
+
+**رابعاً: الأنماط والاتجاهات**
+1. **هل فيه تغيير في الرأي مع الوقت؟**
+2. **هل فيه قضايا محددة تثير الجدل أكثر؟**
+3. **هل الرأي موحد ولا منقسم؟**
+
+**خامساً: الخلاصة - Actionable Insights**
+- أهم 5 أسباب خلف الرأي العام (إيجابي أو سلبي)
+- شو يجب على الحساب إنه يسوي حق تحسين الوضع؟
+- شو الفرص المتاحة حق تحسين السمعة؟
+
+**مهم جداً - طريقة كتابة روابط الإثبات:**
+"الأسباب السلبية:
+1. تأخير في حل المشاكل يخلي العملاء يغضبون [الإثبات: https://twitter.com/username/status/123456789]
+2. عدم الرد على الشكاوى بسرعة يسبب إحباط [الإثبات: https://twitter.com/username/status/987654321]"
+
+**القواعد الإلزامية:**
+- كل سبب أو insight لازم يكون معاه 2-4 روابط إثبات
+- الرابط: [الإثبات: رابط التعليق الكامل]
+- استخدم الروابط الفعلية من التعليقات فقط
+- جميع التحليلات يجب أن تكون مبنية على التعليقات وليس المنشورات
+
+اكتب بأسلوب تحليلي عميق واستراتيجي. ركز على الـ "Why" مش بس الـ "What". ما تستخدم رموز أو نجوم.
+الرد لازم يكون بالعربية الفصحى مع لمسة إماراتية."""
+            content = generate_ai_section(mistral, section_key, prompt, 15000)
+        
+        # عرض القسم مع تحويل الروابط لـ hyperlinks وتصميم حديث
+        if section_key == "executive_summary":
+            display_report_section(section_title, content, "executive_summary")
+        elif section_key == "pros_cons":
+            display_report_section(section_title, content, "pros_cons")
+        elif section_key == "complaints_classification":
+            display_report_section(section_title, content, "complaints")
+        elif section_key == "public_opinion_insights":
+            display_report_section(section_title, content, "insights")
+        else:
+            display_report_section(section_title, content)
+        
+        time.sleep(1)
+    
+    progress_bar.progress(100)
+    status_text.empty()
+    
+    # Clean completion message
+    st.markdown("""
+    <div style="
+        direction: rtl;
+        background: #10b981;
+        padding: 25px 30px;
+        border-radius: 8px;
+        margin: 25px 0;
+        text-align: center;
+    ">
+        <h3 style="
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            font-family: 'Cairo', sans-serif;
+        ">✅ تم إنشاء التقرير التفصيلي بنجاح</h3>
+    </div>
+    """, unsafe_allow_html=True)
