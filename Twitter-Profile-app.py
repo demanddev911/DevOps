@@ -573,7 +573,7 @@ API_HOST = "twitter241.p.rapidapi.com"
 MAX_COMMENT_WORKERS = 15
 CONNECTION_TIMEOUT = 15
 
-MISTRAL_API_KEY = "AIzaSyDQ363gYK7_u3vg-R-rnpzf36oOWkhhTds"  # Replace with your actual Gemini API key
+MISTRAL_API_KEY = "AIzaSyD9u7X1n8vl7yUolBNj-kAnooZd0VUEtNg"  # Replace with your actual Gemini API key
 MISTRAL_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent"
 MISTRAL_MODEL = "gemini-2.0-flash-exp"
 MISTRAL_TEMPERATURE = 0.3
